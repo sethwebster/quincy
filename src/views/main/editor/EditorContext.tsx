@@ -14,6 +14,7 @@ interface EditorActions {
   setMode: (mode: EditorMode) => void
   setActiveDocumentId: (id: string | null) => void
   openFile: (path: string, content: string) => void
+  closeFile: () => void
   setContent: (content: string) => void
   markClean: () => void
 }
@@ -70,7 +71,21 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
     setIsDirty(false)
   }, [])
 
+  const closeFile = useCallback(() => {
+    contentRef.current = ""
+    setContentState("")
+    setActiveFilePath(null)
+    setActiveDocumentId(null)
+    setIsDirty(false)
+  }, [])
+
   useFileSave(content, isDirty, activeFilePath, markClean)
+
+  useEffect(() => {
+    function handler() { closeFile() }
+    window.addEventListener("quincy:closeFile", handler)
+    return () => window.removeEventListener("quincy:closeFile", handler)
+  }, [closeFile])
 
   return (
     <EditorContext.Provider
@@ -83,6 +98,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
         setMode,
         setActiveDocumentId,
         openFile,
+        closeFile,
         setContent,
         markClean,
       }}

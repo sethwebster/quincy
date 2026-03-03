@@ -14,6 +14,12 @@ export const rpc = Electroview.defineRPC<AppRPC>({
           new CustomEvent("quincy:workspaceFoldersChanged", { detail: folders }),
         )
       },
+      closeFile: () => {
+        window.dispatchEvent(new CustomEvent("quincy:closeFile"))
+      },
+      reload: () => {
+        location.reload()
+      },
     },
   },
 })

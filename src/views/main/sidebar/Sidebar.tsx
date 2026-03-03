@@ -28,7 +28,7 @@ export function Sidebar() {
           className="text-xs font-semibold tracking-wider"
           style={{ color: "var(--color-text-muted)" }}
         >
-          FILES
+          FOLDER EXPLORER
         </span>
         <Button
           size="sm"

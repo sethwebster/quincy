@@ -56,6 +56,8 @@ export type AppRPC = {
     messages: {
       themeChanged: { theme: "dark" | "light" }
       workspaceFoldersChanged: { folders: string[] }
+      closeFile: Record<string, never>
+      reload: Record<string, never>
     }
   }>
 }

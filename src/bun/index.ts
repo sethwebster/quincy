@@ -1,6 +1,6 @@
 import { BrowserWindow, BrowserView, Utils, ApplicationMenu } from "electrobun/bun"
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs"
-import { join } from "node:path"
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, watch, copyFileSync } from "node:fs"
+import { join, resolve, dirname } from "node:path"
 import { homedir } from "node:os"
 import type { AppRPC, AppPreferences, DirEntry } from "../shared/types"
 import { DEFAULT_PREFERENCES } from "../shared/types"
@@ -66,12 +66,23 @@ ApplicationMenu.setApplicationMenu([
       { role: "toggleFullScreen" },
     ],
   },
+  {
+    label: "Window",
+    submenu: [
+      { label: "Close File", action: "closeFile", accelerator: "w" },
+      { type: "separator" },
+      { role: "minimize" },
+      { role: "zoom" },
+    ],
+  },
 ])
 
 ApplicationMenu.on("application-menu-clicked", async (e: unknown) => {
   const { action } = (e as { data: { action: string } }).data
 
-  if (action === "addFolder") {
+  if (action === "closeFile") {
+    rpc.send.closeFile({})
+  } else if (action === "addFolder") {
     const paths = await Utils.openFileDialog({
       canChooseDirectory: true,
       allowsMultipleSelection: false,
@@ -175,6 +186,74 @@ const win = new BrowserWindow({
   titleBarStyle: "hiddenInset",
   rpc,
 })
+
+// ─── Dev live reload ────────────────────────────────────────────────────────
+
+const isDev = import.meta.dir.includes("dev-")
+
+if (isDev) {
+  // import.meta.dir → .../build/dev-macos-arm64/Quincy-dev.app/Contents/MacOS
+  // Walk up to find the project root (directory containing electrobun.config.ts)
+  let projectRoot = import.meta.dir
+  while (projectRoot !== "/" && !existsSync(join(projectRoot, "electrobun.config.ts"))) {
+    projectRoot = dirname(projectRoot)
+  }
+  const srcViews = join(projectRoot, "src", "views")
+  const outDir = resolve(import.meta.dir, "../Resources/app/views/main")
+  const entrypoint = join(projectRoot, "src", "views", "main", "index.tsx")
+  // Read CONVEX_URL from .env (same logic as electrobun.config.ts)
+  function readConvexUrl(): string {
+    for (const file of [".env", ".env.local"]) {
+      try {
+        for (const line of readFileSync(join(projectRoot, file), "utf-8").split("\n")) {
+          const t = line.trim()
+          if (!t || t.startsWith("#")) continue
+          const eq = t.indexOf("=")
+          if (eq < 0) continue
+          if (t.slice(0, eq).trim() === "CONVEX_URL") return t.slice(eq + 1).split(" #")[0].trim()
+        }
+      } catch {}
+    }
+    return ""
+  }
+
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  async function rebuild() {
+    const start = performance.now()
+    try {
+      const result = await Bun.build({
+        entrypoints: [entrypoint],
+        outdir: outDir,
+        target: "browser",
+        define: {
+          "process.env.CONVEX_URL": JSON.stringify(readConvexUrl()),
+        },
+      })
+      if (!result.success) {
+        console.error("[dev] Build failed:", result.logs.join("\n"))
+        return
+      }
+      // Also copy CSS if it changed
+      const cssSource = join(projectRoot, "src/views/main/styles/output.css")
+      const cssDest = join(outDir, "styles/output.css")
+      if (existsSync(cssSource)) copyFileSync(cssSource, cssDest)
+
+      console.log(`[dev] Rebuilt in ${(performance.now() - start).toFixed(0)}ms`)
+      rpc.send.reload({})
+    } catch (e) {
+      console.error("[dev] Rebuild error:", e)
+    }
+  }
+
+  watch(srcViews, { recursive: true }, (_event, filename) => {
+    if (!filename || filename.includes("node_modules")) return
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(rebuild, 200)
+  })
+
+  console.log("[dev] Watching src/views/ for changes")
+}
 
 // Expose window for later use
 export { win }
