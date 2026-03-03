@@ -31,6 +31,9 @@ export default {
     exitOnLastWindowClosed: true,
   },
   build: {
+    mac: {
+      icons: "icon.iconset",
+    },
     bun: {
       entrypoint: "src/bun/index.ts",
     },
