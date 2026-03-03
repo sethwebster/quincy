@@ -23,7 +23,7 @@ export function Sidebar() {
       }}
     >
       {/* Title bar space + header */}
-      <div className="drag-region flex items-center justify-between px-4 pb-2 pt-10">
+      <div className="flex items-center justify-between px-4 pb-2 pt-3">
         <span
           className="text-xs font-semibold tracking-wider"
           style={{ color: "var(--color-text-muted)" }}
