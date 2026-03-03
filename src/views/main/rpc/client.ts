@@ -20,6 +20,9 @@ export const rpc = Electroview.defineRPC<AppRPC>({
       reload: () => {
         location.reload()
       },
+      toggleSidebar: () => {
+        window.dispatchEvent(new CustomEvent("quincy:toggleSidebar"))
+      },
     },
   },
 })

@@ -70,6 +70,7 @@ ApplicationMenu.setApplicationMenu([
     label: "Window",
     submenu: [
       { label: "Close File", action: "closeFile", accelerator: "w" },
+      { label: "Toggle Sidebar", action: "toggleSidebar", accelerator: "b" },
       { type: "separator" },
       { role: "minimize" },
       { role: "zoom" },
@@ -82,6 +83,8 @@ ApplicationMenu.on("application-menu-clicked", async (e: unknown) => {
 
   if (action === "closeFile") {
     rpc.send.closeFile({})
+  } else if (action === "toggleSidebar") {
+    rpc.send.toggleSidebar({})
   } else if (action === "addFolder") {
     const paths = await Utils.openFileDialog({
       canChooseDirectory: true,

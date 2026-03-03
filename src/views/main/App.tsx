@@ -2,7 +2,7 @@ import { Authenticated, Unauthenticated, AuthLoading } from "convex/react"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../../convex/_generated/api"
 import type { Id } from "../../../convex/_generated/dataModel"
-import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { SignIn } from "./auth/SignIn"
 import { Sidebar } from "./sidebar/Sidebar"
@@ -148,8 +148,16 @@ function MainApp() {
   const { mode, setMode } = useEditor()
   const { folders } = useWorkspace()
   const quickOpen = useQuickOpen(folders)
+  const [sidebarVisible, setSidebarVisible] = useState(true)
 
+  const toggleSidebar = useCallback(() => setSidebarVisible(v => !v), [])
   useHotkey("p", quickOpen.toggle)
+  useHotkey("b", toggleSidebar)
+
+  useEffect(() => {
+    window.addEventListener("quincy:toggleSidebar", toggleSidebar)
+    return () => window.removeEventListener("quincy:toggleSidebar", toggleSidebar)
+  }, [toggleSidebar])
 
   return (
     <div className="flex h-full flex-col" style={{ background: "var(--color-surface-1)" }}>
@@ -157,9 +165,20 @@ function MainApp() {
 
       <div className="flex min-h-0 flex-1">
         {/* Sidebar */}
-        <div className="w-60 shrink-0">
-          <Sidebar />
-        </div>
+        <AnimatePresence initial={false}>
+          {sidebarVisible && (
+            <motion.div
+              key="sidebar"
+              className="w-60 shrink-0 overflow-hidden"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 240, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+            >
+              <Sidebar />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Editor */}
         <div className="min-w-0 flex-1">

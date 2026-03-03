@@ -70,6 +70,7 @@ export type AppRPC = {
       workspaceFoldersChanged: { folders: string[] }
       closeFile: Record<string, never>
       reload: Record<string, never>
+      toggleSidebar: Record<string, never>
     }
   }>
 }
