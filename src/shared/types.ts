@@ -16,6 +16,13 @@ export interface TreeNode {
   isExpanded: boolean
 }
 
+export interface WindowFrame {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface AppPreferences {
   theme: "dark" | "light" | "system"
   fontSize: number
@@ -23,6 +30,7 @@ export interface AppPreferences {
   defaultEditorMode: EditorMode
   sidebarWidth: number
   workspaceFolders: string[]
+  windowFrame: WindowFrame | null
 }
 
 export const DEFAULT_PREFERENCES: AppPreferences = {
@@ -32,6 +40,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
   defaultEditorMode: "split",
   sidebarWidth: 240,
   workspaceFolders: [],
+  windowFrame: null,
 }
 
 export type AppRPC = {
@@ -46,6 +55,9 @@ export type AppRPC = {
       showOpenFolderDialog: { params: Record<string, never>; response: string | null }
       listDirectory: { params: { path: string }; response: DirEntry[] }
       searchFiles: { params: { roots: string[] }; response: DirEntry[] }
+      windowClose: { params: Record<string, never>; response: void }
+      windowMinimize: { params: Record<string, never>; response: void }
+      windowMaximize: { params: Record<string, never>; response: void }
     }
     messages: {
       log: { msg: string; level: "info" | "warn" | "error" }

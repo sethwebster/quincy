@@ -141,6 +141,9 @@ const rpc = BrowserView.defineRPC<AppRPC>({
         results.sort((a, b) => a.name.localeCompare(b.name))
         return results
       },
+      windowClose: async () => { win.close() },
+      windowMinimize: async () => { win.minimize() },
+      windowMaximize: async () => { win.maximize() },
       listDirectory: async ({ path }) => {
         try {
           const entries = readdirSync(path, { withFileTypes: true })
@@ -174,18 +177,30 @@ const rpc = BrowserView.defineRPC<AppRPC>({
 
 // ─── Window ─────────────────────────────────────────────────────────────────
 
+const savedFrame = prefs.windowFrame ?? { width: 1400, height: 900, x: 100, y: 80 }
+
 const win = new BrowserWindow({
   title: "Quincy",
-  frame: {
-    width: 1400,
-    height: 900,
-    x: 100,
-    y: 80,
-  },
+  frame: savedFrame,
   url: "views://main/index.html",
-  titleBarStyle: "hiddenInset",
+  titleBarStyle: "hidden",
   rpc,
 })
+
+// Persist window frame on move/resize (debounced)
+let frameSaveTimer: ReturnType<typeof setTimeout> | null = null
+
+function persistFrame() {
+  if (frameSaveTimer) clearTimeout(frameSaveTimer)
+  frameSaveTimer = setTimeout(() => {
+    const frame = win.getFrame()
+    prefs = { ...prefs, windowFrame: frame }
+    savePreferences(prefs)
+  }, 500)
+}
+
+win.on("resize", persistFrame)
+win.on("move", persistFrame)
 
 // ─── Dev live reload ────────────────────────────────────────────────────────
 

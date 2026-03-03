@@ -13,6 +13,7 @@ import { RichTextEditor } from "./editor/RichTextEditor"
 import { SplitEditor } from "./editor/SplitEditor"
 import { SourceEditor } from "./editor/SourceEditor"
 import { Spinner } from "./components/Spinner"
+import { TrafficLights } from "./components/TrafficLights"
 import { useHotkey } from "./hooks/useHotkey"
 import { useWorkspace } from "./sidebar/useWorkspace"
 import { useQuickOpen } from "./quickopen/useQuickOpen"
@@ -122,11 +123,13 @@ function EditorArea() {
 function TitleBar({ mode, onModeChange }: { mode: EditorMode; onModeChange: (m: EditorMode) => void }) {
   return (
     <div
-      className="drag-region flex h-11 shrink-0 items-center justify-center px-4"
+      className="electrobun-webkit-app-region-drag flex h-11 shrink-0 items-center justify-center px-4 select-none"
       style={{ borderBottom: "1px solid var(--color-glass-border)" }}
     >
-      {/* Traffic lights zone (macOS) — 72px reserved */}
-      <div className="w-[72px]" />
+      {/* Traffic lights */}
+      <div className="w-[72px]">
+        <TrafficLights />
+      </div>
 
       {/* Centered mode toggle */}
       <div className="flex flex-1 items-center justify-center">
