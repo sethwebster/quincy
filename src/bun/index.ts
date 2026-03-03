@@ -108,6 +108,28 @@ const rpc = BrowserView.defineRPC<AppRPC>({
         const first = paths[0]?.trim()
         return first && first.length > 0 ? first : null
       },
+      searchFiles: async ({ roots }) => {
+        const results: DirEntry[] = []
+        function walk(dir: string) {
+          try {
+            const entries = readdirSync(dir, { withFileTypes: true })
+            for (const entry of entries) {
+              if (entry.name.startsWith(".")) continue
+              const full = join(dir, entry.name)
+              if (entry.isDirectory()) {
+                walk(full)
+              } else if (entry.name.endsWith(".md")) {
+                results.push({ name: entry.name, path: full, isDirectory: false })
+              }
+            }
+          } catch {
+            // skip inaccessible dirs
+          }
+        }
+        for (const root of roots) walk(root)
+        results.sort((a, b) => a.name.localeCompare(b.name))
+        return results
+      },
       listDirectory: async ({ path }) => {
         try {
           const entries = readdirSync(path, { withFileTypes: true })

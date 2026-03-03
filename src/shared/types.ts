@@ -45,6 +45,7 @@ export type AppRPC = {
       showSaveDialog: { params: { defaultName: string }; response: string | null }
       showOpenFolderDialog: { params: Record<string, never>; response: string | null }
       listDirectory: { params: { path: string }; response: DirEntry[] }
+      searchFiles: { params: { roots: string[] }; response: DirEntry[] }
     }
     messages: {
       log: { msg: string; level: "info" | "warn" | "error" }

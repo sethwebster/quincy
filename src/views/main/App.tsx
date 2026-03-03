@@ -13,6 +13,10 @@ import { RichTextEditor } from "./editor/RichTextEditor"
 import { SplitEditor } from "./editor/SplitEditor"
 import { SourceEditor } from "./editor/SourceEditor"
 import { Spinner } from "./components/Spinner"
+import { useHotkey } from "./hooks/useHotkey"
+import { useWorkspace } from "./sidebar/useWorkspace"
+import { useQuickOpen } from "./quickopen/useQuickOpen"
+import { QuickOpenModal } from "./quickopen/QuickOpenModal"
 import type { EditorMode } from "../../shared/types"
 
 // ── Editor area ────────────────────────────────────────────────────────────
@@ -139,6 +143,10 @@ function TitleBar({ mode, onModeChange }: { mode: EditorMode; onModeChange: (m: 
 
 function MainApp() {
   const { mode, setMode } = useEditor()
+  const { folders } = useWorkspace()
+  const quickOpen = useQuickOpen(folders)
+
+  useHotkey("p", quickOpen.toggle)
 
   return (
     <div className="flex h-full flex-col" style={{ background: "var(--color-surface-1)" }}>
@@ -155,6 +163,20 @@ function MainApp() {
           <EditorArea />
         </div>
       </div>
+
+      <AnimatePresence>
+        {quickOpen.isOpen && (
+          <QuickOpenModal
+            query={quickOpen.query}
+            onQueryChange={quickOpen.setQuery}
+            results={quickOpen.results}
+            selectedIndex={quickOpen.selectedIndex}
+            onSelect={(entry) => void quickOpen.selectFile(entry)}
+            onKeyDown={quickOpen.handleKeyDown}
+            onClose={quickOpen.close}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
