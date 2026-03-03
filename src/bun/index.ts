@@ -38,7 +38,7 @@ ApplicationMenu.setApplicationMenu([
       { role: "hideOthers" },
       { role: "showAll" },
       { type: "separator" },
-      { role: "quit" },
+      { role: "quit", accelerator: "q" },
     ],
   },
   {
