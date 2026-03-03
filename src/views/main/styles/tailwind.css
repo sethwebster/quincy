@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+@theme {
+  /* ── Surfaces ─────────────────────────────────────────────────────────── */
+  --color-surface-0: #09090d;
+  --color-surface-1: #0f0f14;
+  --color-surface-2: #161620;
+  --color-surface-3: #1e1e2a;
+
+  /* ── Glass ────────────────────────────────────────────────────────────── */
+  --color-glass-bg: rgba(255, 255, 255, 0.04);
+  --color-glass-border: rgba(255, 255, 255, 0.07);
+  --color-glass-hover: rgba(255, 255, 255, 0.07);
+
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  --color-text-primary: rgba(255, 255, 255, 0.92);
+  --color-text-secondary: rgba(255, 255, 255, 0.55);
+  --color-text-muted: rgba(255, 255, 255, 0.28);
+  --color-text-placeholder: rgba(255, 255, 255, 0.20);
+
+  /* ── Accent ───────────────────────────────────────────────────────────── */
+  --color-accent: #7c6af7;
+  --color-accent-dim: rgba(124, 106, 247, 0.15);
+  --color-accent-glow: rgba(124, 106, 247, 0.25);
+
+  /* ── Semantic ─────────────────────────────────────────────────────────── */
+  --color-danger: #f87171;
+  --color-success: #6ee7b7;
+  --color-warning: #fbbf24;
+}
+
+/* ── Base reset ───────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  background: var(--color-surface-0);
+  color: var(--color-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+}
+
+/* ── Glass primitive ──────────────────────────────────────────────────────── */
+.glass {
+  background: var(--color-glass-bg);
+  border: 1px solid var(--color-glass-border);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+.glass-hover:hover {
+  background: var(--color-glass-hover);
+}
+
+/* ── Title bar drag region ────────────────────────────────────────────────── */
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* ── Editor typography ────────────────────────────────────────────────────── */
+.editor-content {
+  user-select: text;
+  cursor: text;
+  line-height: 1.75;
+  letter-spacing: 0.01em;
+}
+
+.editor-content h1 { font-size: 2em; font-weight: 700; margin: 0.6em 0 0.4em; }
+.editor-content h2 { font-size: 1.5em; font-weight: 600; margin: 0.6em 0 0.3em; }
+.editor-content h3 { font-size: 1.25em; font-weight: 600; margin: 0.5em 0 0.3em; }
+.editor-content h4, .editor-content h5, .editor-content h6 {
+  font-size: 1em; font-weight: 600; margin: 0.5em 0 0.2em;
+}
+.editor-content p { margin: 0 0 0.8em; }
+.editor-content ul, .editor-content ol { padding-left: 1.5em; margin: 0 0 0.8em; }
+.editor-content li { margin-bottom: 0.2em; }
+.editor-content blockquote {
+  border-left: 3px solid var(--color-accent);
+  margin: 0.8em 0;
+  padding: 0.2em 0 0.2em 1em;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+.editor-content code {
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.875em;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.editor-content pre {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--color-glass-border);
+  border-radius: 8px;
+  padding: 1em;
+  overflow-x: auto;
+  margin: 0 0 1em;
+}
+.editor-content pre code {
+  background: none;
+  padding: 0;
+}
+.editor-content a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+.editor-content a:hover { text-decoration: underline; }
+.editor-content hr {
+  border: none;
+  border-top: 1px solid var(--color-glass-border);
+  margin: 1.5em 0;
+}
+.editor-content table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 1em;
+}
+.editor-content th, .editor-content td {
+  border: 1px solid var(--color-glass-border);
+  padding: 0.4em 0.8em;
+  text-align: left;
+}
+.editor-content th { background: rgba(255,255,255,0.05); font-weight: 600; }
+
+/* ── TipTap focus ─────────────────────────────────────────────────────────── */
+.ProseMirror { outline: none; }
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-placeholder);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* ── CodeMirror overrides ─────────────────────────────────────────────────── */
+.cm-editor {
+  height: 100%;
+  background: transparent !important;
+}
+.cm-scroller {
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.cm-focused { outline: none !important; }
+.cm-editor.cm-focused { outline: none !important; }

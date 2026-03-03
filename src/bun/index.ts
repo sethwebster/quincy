@@ -1,0 +1,158 @@
+import { BrowserWindow, BrowserView, Utils, ApplicationMenu } from "electrobun/bun"
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "node:fs"
+import { join } from "node:path"
+import { homedir } from "node:os"
+import type { AppRPC, AppPreferences, DirEntry } from "../shared/types"
+import { DEFAULT_PREFERENCES } from "../shared/types"
+
+// ─── Preferences ────────────────────────────────────────────────────────────
+
+const prefsDir = join(homedir(), ".config", "quincy")
+const prefsPath = join(prefsDir, "preferences.json")
+
+function loadPreferences(): AppPreferences {
+  try {
+    if (existsSync(prefsPath)) {
+      return { ...DEFAULT_PREFERENCES, ...JSON.parse(readFileSync(prefsPath, "utf-8")) }
+    }
+  } catch {
+    // fall through to defaults
+  }
+  return { ...DEFAULT_PREFERENCES }
+}
+
+function savePreferences(prefs: AppPreferences): void {
+  if (!existsSync(prefsDir)) mkdirSync(prefsDir, { recursive: true })
+  writeFileSync(prefsPath, JSON.stringify(prefs, null, 2))
+}
+
+let prefs = loadPreferences()
+
+// ─── Application menu (MUST be set before BrowserWindow) ────────────────────
+
+ApplicationMenu.setApplicationMenu([
+  {
+    label: "Quincy",
+    submenu: [
+      { role: "hide" },
+      { role: "hideOthers" },
+      { role: "showAll" },
+      { type: "separator" },
+      { role: "quit" },
+    ],
+  },
+  {
+    label: "File",
+    submenu: [
+      { label: "Add Folder…", action: "addFolder", accelerator: "shift+o" },
+    ],
+  },
+  {
+    label: "Edit",
+    submenu: [
+      { label: "Undo", role: "undo" },
+      { label: "Redo", role: "redo" },
+      { type: "separator" },
+      { label: "Cut", role: "cut" },
+      { label: "Copy", role: "copy" },
+      { label: "Paste", role: "paste" },
+      { type: "separator" },
+      { label: "Select All", role: "selectAll" },
+    ],
+  },
+  {
+    label: "View",
+    submenu: [
+      { role: "toggleFullScreen" },
+    ],
+  },
+])
+
+ApplicationMenu.on("application-menu-clicked", async (e: unknown) => {
+  const { action } = (e as { data: { action: string } }).data
+
+  if (action === "addFolder") {
+    const paths = await Utils.openFileDialog({
+      canChooseDirectory: true,
+      allowsMultipleSelection: false,
+    })
+    const first = paths[0]?.trim()
+    if (!first) return
+
+    prefs = { ...prefs, workspaceFolders: [...prefs.workspaceFolders, first] }
+    savePreferences(prefs)
+    rpc.send.workspaceFoldersChanged({ folders: prefs.workspaceFolders })
+  }
+})
+
+// ─── RPC ────────────────────────────────────────────────────────────────────
+
+const rpc = BrowserView.defineRPC<AppRPC>({
+  maxRequestTime: 10000,
+  handlers: {
+    requests: {
+      getPreferences: async () => prefs,
+      setPreferences: async (patch) => {
+        prefs = { ...prefs, ...patch }
+        savePreferences(prefs)
+      },
+      readFile: async ({ path }) => readFileSync(path, "utf-8"),
+      writeFile: async ({ path, content }) => writeFileSync(path, content, "utf-8"),
+      showOpenDialog: async () => null,
+      showSaveDialog: async () => null,
+      showOpenFolderDialog: async () => {
+        const paths = await Utils.openFileDialog({
+          canChooseDirectory: true,
+          allowsMultipleSelection: false,
+        })
+        const first = paths[0]?.trim()
+        return first && first.length > 0 ? first : null
+      },
+      listDirectory: async ({ path }) => {
+        try {
+          const entries = readdirSync(path, { withFileTypes: true })
+          const result: DirEntry[] = []
+          for (const entry of entries) {
+            if (entry.name.startsWith(".")) continue
+            if (entry.isDirectory()) {
+              result.push({ name: entry.name, path: join(path, entry.name), isDirectory: true })
+            } else if (entry.name.endsWith(".md")) {
+              result.push({ name: entry.name, path: join(path, entry.name), isDirectory: false })
+            }
+          }
+          result.sort((a, b) => {
+            if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1
+            return a.name.localeCompare(b.name)
+          })
+          return result
+        } catch {
+          return []
+        }
+      },
+    },
+    messages: {
+      log: ({ msg, level }) => {
+        const fn = level === "error" ? console.error : level === "warn" ? console.warn : console.log
+        fn(`[renderer] ${msg}`)
+      },
+    },
+  },
+})
+
+// ─── Window ─────────────────────────────────────────────────────────────────
+
+const win = new BrowserWindow({
+  title: "Quincy",
+  frame: {
+    width: 1400,
+    height: 900,
+    x: 100,
+    y: 80,
+  },
+  url: "views://main/index.html",
+  titleBarStyle: "hiddenInset",
+  rpc,
+})
+
+// Expose window for later use
+export { win }

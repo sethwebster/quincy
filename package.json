@@ -1,0 +1,44 @@
+{
+  "name": "quincy",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun run build:css && concurrently -n tw,app -c blue,green \"./node_modules/.bin/tailwindcss -i src/views/main/styles/tailwind.css -o src/views/main/styles/output.css --watch\" \"electrobun dev\"",
+    "build:css": "./node_modules/.bin/tailwindcss -i src/views/main/styles/tailwind.css -o src/views/main/styles/output.css",
+    "build": "bun run build:css && electrobun build",
+    "convex:dev": "npx convex dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@auth/core": "^0.37.0",
+    "@codemirror/lang-markdown": "^6.3.2",
+    "@codemirror/language-data": "^6.5.1",
+    "@convex-dev/auth": "^0.0.73",
+    "@oslojs/crypto": "^1.0.0",
+    "@tailwindcss/cli": "^4.2.1",
+    "@tiptap/extension-placeholder": "^2.11.5",
+    "@tiptap/pm": "^2.11.5",
+    "@tiptap/react": "^2.11.5",
+    "@tiptap/starter-kit": "^2.11.5",
+    "@uiw/codemirror-theme-vscode": "^4.23.6",
+    "@uiw/react-codemirror": "^4.23.6",
+    "convex": "^1.17.4",
+    "cookie": "^1.1.1",
+    "electrobun": "latest",
+    "framer-motion": "^11.12.0",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "resend": "^4.0.0",
+    "tiptap-markdown": "^0.8.10"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "concurrently": "^9.1.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.2"
+  }
+}
