@@ -18,12 +18,14 @@ import { useHotkey } from "./hooks/useHotkey"
 import { useWorkspace } from "./sidebar/useWorkspace"
 import { useQuickOpen } from "./quickopen/useQuickOpen"
 import { QuickOpenModal } from "./quickopen/QuickOpenModal"
+import { Minimap } from "./editor/Minimap"
 import type { EditorMode } from "../../shared/types"
 
 // ── Editor area ────────────────────────────────────────────────────────────
 
 function EditorArea() {
   const { mode, setMode, activeDocumentId, activeFilePath, content, setContent, isDirty, markClean } = useEditor()
+  const editorContainerRef = useRef<HTMLDivElement>(null)
   const update = useMutation(api.documents.update)
   const doc = useQuery(
     api.documents.get,
@@ -73,8 +75,9 @@ function EditorArea() {
       {/* Toolbar */}
       <Toolbar mode={mode} onAction={handleToolbarAction} />
 
-      {/* Editor content */}
-      <div className="no-drag min-h-0 flex-1 overflow-hidden">
+      {/* Editor content + minimap */}
+      <div className="flex min-h-0 flex-1">
+        <div ref={editorContainerRef} className="no-drag min-h-0 flex-1 overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
           {mode === "rich" && (
             <motion.div
@@ -113,6 +116,10 @@ function EditorArea() {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
+        {(activeDocumentId || activeFilePath) && (
+          <Minimap content={content} editorRef={editorContainerRef} mode={mode} />
+        )}
       </div>
     </div>
   )
