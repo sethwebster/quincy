@@ -4,6 +4,8 @@ import { join, resolve, dirname } from "node:path"
 import { homedir } from "node:os"
 import type { AppRPC, AppPreferences, DirEntry } from "../shared/types"
 import { DEFAULT_PREFERENCES } from "../shared/types"
+import { appendWorkspaceFolder, normalizeWorkspaceFolders } from "../shared/workspaceFolders"
+import { initializeUpdater, checkForUpdatesHandler, applyUpdateHandler } from "./updater"
 
 // ─── Preferences ────────────────────────────────────────────────────────────
 
@@ -13,7 +15,8 @@ const prefsPath = join(prefsDir, "preferences.json")
 function loadPreferences(): AppPreferences {
   try {
     if (existsSync(prefsPath)) {
-      return { ...DEFAULT_PREFERENCES, ...JSON.parse(readFileSync(prefsPath, "utf-8")) }
+      const loaded = { ...DEFAULT_PREFERENCES, ...JSON.parse(readFileSync(prefsPath, "utf-8")) }
+      return { ...loaded, workspaceFolders: normalizeWorkspaceFolders(loaded.workspaceFolders) }
     }
   } catch {
     // fall through to defaults
@@ -23,7 +26,8 @@ function loadPreferences(): AppPreferences {
 
 function savePreferences(prefs: AppPreferences): void {
   if (!existsSync(prefsDir)) mkdirSync(prefsDir, { recursive: true })
-  writeFileSync(prefsPath, JSON.stringify(prefs, null, 2))
+  const normalized = { ...prefs, workspaceFolders: normalizeWorkspaceFolders(prefs.workspaceFolders) }
+  writeFileSync(prefsPath, JSON.stringify(normalized, null, 2))
 }
 
 let prefs = loadPreferences()
@@ -57,6 +61,8 @@ ApplicationMenu.setApplicationMenu([
       { label: "Copy", role: "copy" },
       { label: "Paste", role: "paste" },
       { type: "separator" },
+      { label: "Find", action: "find", accelerator: "f" },
+      { type: "separator" },
       { label: "Select All", role: "selectAll" },
     ],
   },
@@ -83,6 +89,8 @@ ApplicationMenu.on("application-menu-clicked", async (e: unknown) => {
 
   if (action === "closeFile") {
     rpc.send.closeFile({})
+  } else if (action === "find") {
+    rpc.send.find({})
   } else if (action === "toggleSidebar") {
     rpc.send.toggleSidebar({})
   } else if (action === "addFolder") {
@@ -93,7 +101,7 @@ ApplicationMenu.on("application-menu-clicked", async (e: unknown) => {
     const first = paths[0]?.trim()
     if (!first) return
 
-    prefs = { ...prefs, workspaceFolders: [...prefs.workspaceFolders, first] }
+    prefs = { ...prefs, workspaceFolders: appendWorkspaceFolder(prefs.workspaceFolders, first) }
     savePreferences(prefs)
     rpc.send.workspaceFoldersChanged({ folders: prefs.workspaceFolders })
   }
@@ -107,7 +115,11 @@ const rpc = BrowserView.defineRPC<AppRPC>({
     requests: {
       getPreferences: async () => prefs,
       setPreferences: async (patch) => {
-        prefs = { ...prefs, ...patch }
+        const next = { ...prefs, ...patch }
+        prefs = {
+          ...next,
+          workspaceFolders: normalizeWorkspaceFolders(next.workspaceFolders),
+        }
         savePreferences(prefs)
       },
       readFile: async ({ path }) => readFileSync(path, "utf-8"),
@@ -147,6 +159,8 @@ const rpc = BrowserView.defineRPC<AppRPC>({
       windowClose: async () => { win.close() },
       windowMinimize: async () => { win.minimize() },
       windowMaximize: async () => { win.maximize() },
+      checkForUpdates: checkForUpdatesHandler,
+      applyUpdate: applyUpdateHandler,
       listDirectory: async ({ path }) => {
         try {
           const entries = readdirSync(path, { withFileTypes: true })
@@ -186,7 +200,7 @@ const win = new BrowserWindow({
   title: "Quincy",
   frame: savedFrame,
   url: "views://main/index.html",
-  titleBarStyle: "hidden",
+  titleBarStyle: "hiddenInset",
   rpc,
 })
 
@@ -204,6 +218,9 @@ function persistFrame() {
 
 win.on("resize", persistFrame)
 win.on("move", persistFrame)
+
+// Ensure WKWebView is the first responder so keyboard events reach web content
+setTimeout(() => win.focus(), 200)
 
 // ─── Dev live reload ────────────────────────────────────────────────────────
 
@@ -272,6 +289,10 @@ if (isDev) {
 
   console.log("[dev] Watching src/views/ for changes")
 }
+
+// ─── Updater ────────────────────────────────────────────────────────────────
+
+initializeUpdater((payload) => rpc.send.updateStatus(payload))
 
 // Expose window for later use
 export { win }

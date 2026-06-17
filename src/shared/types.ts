@@ -1,6 +1,33 @@
 import type { RPCSchema } from "electrobun"
 
+export type UpdateStatusType =
+  | "idle" | "checking" | "check-complete" | "no-update" | "update-available"
+  | "downloading" | "download-starting" | "download-progress" | "download-complete"
+  | "decompressing" | "applying" | "extracting" | "replacing-app"
+  | "launching-new-version" | "complete" | "error"
+
+export interface UpdateStatusPayload {
+  status: UpdateStatusType
+  message: string
+  progress?: number
+  errorMessage?: string
+}
+
 export type EditorMode = "rich" | "split" | "source"
+
+export interface EditorSelectionRange {
+  from: number
+  to: number
+}
+
+export type EditorSelections = Partial<Record<EditorMode, EditorSelectionRange>>
+
+export interface EditorSession {
+  mode: EditorMode
+  activeDocumentId: string | null
+  activeFilePath: string | null
+  selections: EditorSelections
+}
 
 export interface DirEntry {
   name: string
@@ -28,6 +55,7 @@ export interface AppPreferences {
   fontSize: number
   fontFamily: string
   defaultEditorMode: EditorMode
+  editorSession: EditorSession | null
   sidebarWidth: number
   workspaceFolders: string[]
   windowFrame: WindowFrame | null
@@ -38,6 +66,7 @@ export const DEFAULT_PREFERENCES: AppPreferences = {
   fontSize: 15,
   fontFamily: "system",
   defaultEditorMode: "split",
+  editorSession: null,
   sidebarWidth: 240,
   workspaceFolders: [],
   windowFrame: null,
@@ -58,6 +87,8 @@ export type AppRPC = {
       windowClose: { params: Record<string, never>; response: void }
       windowMinimize: { params: Record<string, never>; response: void }
       windowMaximize: { params: Record<string, never>; response: void }
+      checkForUpdates: { params: Record<string, never>; response: void }
+      applyUpdate: { params: Record<string, never>; response: void }
     }
     messages: {
       log: { msg: string; level: "info" | "warn" | "error" }
@@ -69,8 +100,10 @@ export type AppRPC = {
       themeChanged: { theme: "dark" | "light" }
       workspaceFoldersChanged: { folders: string[] }
       closeFile: Record<string, never>
+      find: Record<string, never>
       reload: Record<string, never>
       toggleSidebar: Record<string, never>
+      updateStatus: UpdateStatusPayload
     }
   }>
 }

@@ -48,6 +48,7 @@ export default {
     copy: {
       "src/views/main/index.html": "views/main/index.html",
       "src/views/main/styles/output.css": "views/main/styles/output.css",
+      "assets/logo.png": "views/main/logo.png",
     },
   },
   release: {

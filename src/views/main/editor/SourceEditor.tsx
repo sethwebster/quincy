@@ -3,12 +3,16 @@ import { markdown } from "@codemirror/lang-markdown"
 import { languages } from "@codemirror/language-data"
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language"
 import { tags } from "@lezer/highlight"
-import { EditorView } from "@codemirror/view"
-import { useCallback, useMemo } from "react"
+import { EditorView, keymap, type ViewUpdate } from "@codemirror/view"
+import { search, searchKeymap } from "@codemirror/search"
+import { useCallback, useEffect, useMemo, useRef } from "react"
+import type { EditorSelectionRange } from "../../../shared/types"
 
 interface SourceEditorProps {
   content: string
   onChange: (value: string) => void
+  selection?: EditorSelectionRange | null
+  onSelectionChange?: (selection: EditorSelectionRange) => void
 }
 
 const editorTheme = EditorView.theme({
@@ -94,15 +98,40 @@ const highlightStyle = HighlightStyle.define([
   { tag: tags.punctuation, color: "rgba(255,255,255,0.5)" },
 ])
 
-export function SourceEditor({ content, onChange }: SourceEditorProps) {
+function useCodeMirrorSelection(
+  viewRef: React.MutableRefObject<EditorView | null>,
+  selection: EditorSelectionRange | null | undefined,
+) {
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view || !selection) return
+    const from = Math.max(0, Math.min(selection.from, view.state.doc.length))
+    const to = Math.max(0, Math.min(selection.to, view.state.doc.length))
+    const current = view.state.selection.main
+    if (current.from === from && current.to === to) return
+    view.dispatch({ selection: { anchor: from, head: to }, scrollIntoView: true })
+  }, [selection])
+}
+
+export function SourceEditor({ content, onChange, selection, onSelectionChange }: SourceEditorProps) {
+  const viewRef = useRef<EditorView | null>(null)
   const extensions = useMemo(() => [
     markdown({ codeLanguages: languages }),
     EditorView.lineWrapping,
     editorTheme,
     syntaxHighlighting(highlightStyle),
+    search({ top: true }),
+    keymap.of(searchKeymap),
   ], [])
 
   const handleChange = useCallback((value: string) => onChange(value), [onChange])
+  const handleUpdate = useCallback((update: ViewUpdate) => {
+    if (!update.selectionSet || !onSelectionChange) return
+    const { from, to } = update.state.selection.main
+    onSelectionChange({ from, to })
+  }, [onSelectionChange])
+
+  useCodeMirrorSelection(viewRef, selection)
 
   return (
     <div className="no-drag h-full overflow-hidden">
@@ -111,6 +140,8 @@ export function SourceEditor({ content, onChange }: SourceEditorProps) {
         height="100%"
         extensions={extensions}
         onChange={handleChange}
+        onUpdate={handleUpdate}
+        onCreateEditor={(view) => { viewRef.current = view }}
         basicSetup={{
           lineNumbers: false,
           foldGutter: false,

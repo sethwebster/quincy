@@ -17,6 +17,9 @@ export const rpc = Electroview.defineRPC<AppRPC>({
       closeFile: () => {
         window.dispatchEvent(new CustomEvent("quincy:closeFile"))
       },
+      find: () => {
+        window.dispatchEvent(new CustomEvent("quincy:find"))
+      },
       reload: () => {
         location.reload()
       },

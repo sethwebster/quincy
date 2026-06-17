@@ -9,9 +9,11 @@ import { Sidebar } from "./sidebar/Sidebar"
 import { EditorProvider, useEditor } from "./editor/EditorContext"
 import { ModeToggle } from "./editor/ModeToggle"
 import { Toolbar, type ToolbarAction } from "./editor/Toolbar"
-import { RichTextEditor } from "./editor/RichTextEditor"
+import { RichTextEditor, type RichSearchIndex } from "./editor/RichTextEditor"
 import { SplitEditor } from "./editor/SplitEditor"
 import { SourceEditor } from "./editor/SourceEditor"
+import { FindReplacePanel } from "./editor/FindReplacePanel"
+import { useFindReplace } from "./editor/useFindReplace"
 import { Spinner } from "./components/Spinner"
 import { TrafficLights } from "./components/TrafficLights"
 import { useHotkey } from "./hooks/useHotkey"
@@ -20,17 +22,47 @@ import { useQuickOpen } from "./quickopen/useQuickOpen"
 import { QuickOpenModal } from "./quickopen/QuickOpenModal"
 import { Minimap } from "./editor/Minimap"
 import type { EditorMode } from "../../shared/types"
+import type { EditorSelectionRange } from "../../shared/types"
 
 // ── Editor area ────────────────────────────────────────────────────────────
 
 function EditorArea() {
-  const { mode, setMode, activeDocumentId, activeFilePath, content, setContent, isDirty, markClean } = useEditor()
+  const {
+    mode,
+    setMode,
+    activeDocumentId,
+    activeFilePath,
+    content,
+    setContent,
+    isDirty,
+    selections,
+    setSelection,
+    markClean,
+  } = useEditor()
   const editorContainerRef = useRef<HTMLDivElement>(null)
+  const [richSearchIndex, setRichSearchIndex] = useState<RichSearchIndex>({ text: "", positions: [] })
   const update = useMutation(api.documents.update)
   const doc = useQuery(
     api.documents.get,
     activeDocumentId ? { id: activeDocumentId as Id<"documents"> } : "skip",
   )
+  const activeSelection = selections[mode] ?? null
+  const mapRichMatchToSelection = useCallback((match: EditorSelectionRange) => {
+    const matchPositions = richSearchIndex.positions.slice(match.from, match.to)
+    const from = matchPositions.find((position): position is number => position !== null)
+    const toStart = [...matchPositions].reverse().find((position): position is number => position !== null)
+    if (from === undefined || toStart === undefined) return null
+    return { from, to: toStart + 1 }
+  }, [richSearchIndex])
+  const findReplace = useFindReplace({
+    content,
+    searchContent: mode === "rich" ? richSearchIndex.text : content,
+    mode,
+    selection: activeSelection,
+    setContent,
+    setSelection,
+    mapMatchToSelection: mode === "rich" ? mapRichMatchToSelection : undefined,
+  })
 
   // Load Convex document content into editor when switching docs
   const prevDocId = useRef<string | null>(null)
@@ -55,7 +87,12 @@ function EditorArea() {
   }, [content, isDirty, activeDocumentId, activeFilePath, update, markClean])
 
   function handleToolbarAction(action: ToolbarAction) {
-    console.log("toolbar action:", action)
+    if (action === "table") {
+      const table = "\n| Column 1 | Column 2 |\n| --- | --- |\n| Cell 1 | Cell 2 |\n"
+      const insertionPoint = activeSelection?.to ?? content.length
+      setContent(content.slice(0, insertionPoint) + table + content.slice(insertionPoint))
+      setSelection(mode, { from: insertionPoint + 1, to: insertionPoint + 9 })
+    }
   }
 
   if (!activeDocumentId && !activeFilePath) {
@@ -71,7 +108,22 @@ function EditorArea() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="relative flex h-full min-h-0 flex-col">
+      {findReplace.isOpen && (
+        <FindReplacePanel
+          query={findReplace.query}
+          replacement={findReplace.replacement}
+          currentIndex={findReplace.currentIndex}
+          matchCount={findReplace.matchCount}
+          onQueryChange={findReplace.setQuery}
+          onReplacementChange={findReplace.setReplacement}
+          onNext={findReplace.findNext}
+          onPrevious={findReplace.findPrevious}
+          onReplace={findReplace.replaceCurrent}
+          onReplaceAll={findReplace.replaceAll}
+          onClose={findReplace.close}
+        />
+      )}
       {/* Toolbar */}
       <Toolbar mode={mode} onAction={handleToolbarAction} />
 
@@ -88,7 +140,13 @@ function EditorArea() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <RichTextEditor content={content} onChange={setContent} />
+              <RichTextEditor
+                content={content}
+                onChange={setContent}
+                selection={activeSelection}
+                onSelectionChange={(selection) => setSelection("rich", selection)}
+                onSearchIndexChange={setRichSearchIndex}
+              />
             </motion.div>
           )}
           {mode === "split" && (
@@ -100,7 +158,12 @@ function EditorArea() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <SplitEditor content={content} onChange={setContent} />
+              <SplitEditor
+                content={content}
+                onChange={setContent}
+                selection={activeSelection}
+                onSelectionChange={(selection) => setSelection("split", selection)}
+              />
             </motion.div>
           )}
           {mode === "source" && (
@@ -112,7 +175,12 @@ function EditorArea() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15 }}
             >
-              <SourceEditor content={content} onChange={setContent} />
+              <SourceEditor
+                content={content}
+                onChange={setContent}
+                selection={activeSelection}
+                onSelectionChange={(selection) => setSelection("source", selection)}
+              />
             </motion.div>
           )}
         </AnimatePresence>
@@ -158,8 +226,12 @@ function MainApp() {
   const [sidebarVisible, setSidebarVisible] = useState(true)
 
   const toggleSidebar = useCallback(() => setSidebarVisible(v => !v), [])
+  const openFind = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("quincy:find"))
+  }, [])
   useHotkey("p", quickOpen.toggle)
   useHotkey("b", toggleSidebar)
+  useHotkey("f", openFind)
 
   useEffect(() => {
     window.addEventListener("quincy:toggleSidebar", toggleSidebar)

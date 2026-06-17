@@ -1,17 +1,31 @@
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useAuthActions } from "@convex-dev/auth/react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Mail, ArrowRight, RotateCcw } from "lucide-react"
 import { Glass } from "../components/Glass"
 import { Button } from "../components/Button"
 
+const appIconSrc = new URL("./logo.png", import.meta.url).href
+
 type Step = { kind: "email" } | { kind: "code"; email: string }
+
+function useFocusOnMount(dep?: unknown) {
+  const ref = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const t = setTimeout(() => ref.current?.focus(), 300)
+    return () => clearTimeout(t)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dep])
+  return ref
+}
 
 export function SignIn() {
   const { signIn } = useAuthActions()
   const [step, setStep] = useState<Step>({ kind: "email" })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const emailRef = useFocusOnMount(step.kind)
+  const codeRef  = useFocusOnMount(step.kind)
 
   async function handleEmailSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -45,7 +59,7 @@ export function SignIn() {
 
   return (
     <div
-      className="flex h-full w-full items-center justify-center"
+      className="no-drag relative flex h-full w-full items-center justify-center"
       style={{ background: "var(--color-surface-0)" }}
     >
       {/* Ambient glow */}
@@ -68,14 +82,11 @@ export function SignIn() {
             <Glass elevated className="w-80 rounded-2xl p-8">
               {/* Logo / wordmark */}
               <div className="mb-8 text-center">
-                <div
-                  className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-xl text-white"
-                  style={{ background: "var(--color-accent)" }}
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                    <path d="M4 6h16M4 12h10M4 18h13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                  </svg>
-                </div>
+                <img
+                  src={appIconSrc}
+                  alt="Quincy app icon"
+                  className="mb-3 inline-block h-14 w-14 object-contain"
+                />
                 <h1
                   className="text-lg font-semibold tracking-tight"
                   style={{ color: "var(--color-text-primary)" }}
@@ -95,16 +106,17 @@ export function SignIn() {
                     style={{ color: "var(--color-text-muted)" }}
                   />
                   <input
+                    ref={emailRef}
                     name="email"
                     type="email"
                     placeholder="your@email.com"
                     required
-                    autoFocus
                     className="no-drag w-full rounded-lg py-2.5 pl-9 pr-3 text-sm outline-none transition-colors"
                     style={{
                       background: "rgba(255,255,255,0.05)",
                       border: "1px solid var(--color-glass-border)",
                       color: "var(--color-text-primary)",
+                      userSelect: "text",
                     }}
                     onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
                     onBlur={(e) => (e.target.style.borderColor = "var(--color-glass-border)")}
@@ -163,6 +175,7 @@ export function SignIn() {
                 <input type="hidden" name="email" value={step.email} />
 
                 <input
+                  ref={codeRef}
                   name="code"
                   type="text"
                   inputMode="numeric"
@@ -170,13 +183,13 @@ export function SignIn() {
                   maxLength={6}
                   placeholder="000000"
                   required
-                  autoFocus
                   className="no-drag w-full rounded-lg py-2.5 px-3 text-center text-2xl font-mono font-bold tracking-[0.4em] outline-none transition-colors"
                   style={{
                     background: "rgba(255,255,255,0.05)",
                     border: "1px solid var(--color-glass-border)",
                     color: "var(--color-text-primary)",
                     letterSpacing: "0.4em",
+                    userSelect: "text",
                   }}
                   onFocus={(e) => (e.target.style.borderColor = "var(--color-accent)")}
                   onBlur={(e) => (e.target.style.borderColor = "var(--color-glass-border)")}

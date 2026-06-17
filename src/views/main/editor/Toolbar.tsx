@@ -1,4 +1,4 @@
-import { Bold, Italic, Code, Link, List, ListOrdered, Quote, Heading2, Minus } from "lucide-react"
+import { Bold, Italic, Code, Link, List, ListOrdered, Quote, Heading2, Minus, Table } from "lucide-react"
 import type { EditorMode } from "../../../shared/types"
 
 interface ToolbarProps {
@@ -8,7 +8,7 @@ interface ToolbarProps {
 
 export type ToolbarAction =
   | "bold" | "italic" | "code" | "link"
-  | "h2" | "ul" | "ol" | "quote" | "rule"
+  | "h2" | "ul" | "ol" | "quote" | "rule" | "table"
 
 interface ToolbarItem {
   action: ToolbarAction
@@ -27,6 +27,7 @@ const ITEMS: ToolbarItem[] = [
   { action: "ol",     icon: <ListOrdered size={14} />,  title: "Numbered list",   modes: ["rich"] },
   { action: "quote",  icon: <Quote size={14} />,        title: "Blockquote",      modes: ["rich"] },
   { action: "rule",   icon: <Minus size={14} />,        title: "Divider",         modes: ["rich"] },
+  { action: "table",  icon: <Table size={14} />,        title: "Insert table",    modes: ["rich"] },
 ]
 
 export function Toolbar({ mode, onAction }: ToolbarProps) {

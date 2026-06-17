@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from "react"
 import { rpc } from "../rpc/client"
 import { useEditor } from "../editor/EditorContext"
 import type { DirEntry, TreeNode } from "../../../shared/types"
+import { normalizeWorkspaceFolders } from "../../../shared/workspaceFolders"
 
 type ChildrenMap = Record<string, DirEntry[]>
 
@@ -39,10 +40,11 @@ export function useFileTree(folders: string[]) {
   const { openFile: editorOpenFile } = useEditor()
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [childrenMap, setChildrenMap] = useState<ChildrenMap>({})
+  const uniqueFolders = useMemo(() => normalizeWorkspaceFolders(folders), [folders])
 
   const nodes = useMemo(
-    () => buildFlatTree(folders, childrenMap, expanded, 0),
-    [folders, childrenMap, expanded],
+    () => buildFlatTree(uniqueFolders, childrenMap, expanded, 0),
+    [uniqueFolders, childrenMap, expanded],
   )
 
   const toggleExpand = useCallback(

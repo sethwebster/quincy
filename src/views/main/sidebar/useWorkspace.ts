@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
+import { appendWorkspaceFolder, normalizeWorkspaceFolders } from "../../../shared/workspaceFolders"
 import { rpc } from "../rpc/client"
 
 export function useWorkspace() {
@@ -8,7 +9,7 @@ export function useWorkspace() {
   // Load persisted folders on mount
   useEffect(() => {
     void rpc.request.getPreferences({}).then((prefs) => {
-      setFolders(prefs.workspaceFolders ?? [])
+      setFolders(normalizeWorkspaceFolders(prefs.workspaceFolders ?? []))
       setLoading(false)
     })
   }, [])
@@ -16,7 +17,7 @@ export function useWorkspace() {
   // Sync when bun updates folders via the app menu
   useEffect(() => {
     function handler(e: Event) {
-      setFolders((e as CustomEvent<string[]>).detail)
+      setFolders(normalizeWorkspaceFolders((e as CustomEvent<string[]>).detail))
     }
     window.addEventListener("quincy:workspaceFoldersChanged", handler)
     return () => window.removeEventListener("quincy:workspaceFoldersChanged", handler)
@@ -25,7 +26,7 @@ export function useWorkspace() {
   const addFolder = useCallback(async () => {
     const path = await rpc.request.showOpenFolderDialog({})
     if (!path) return
-    const next = [...folders, path]
+    const next = appendWorkspaceFolder(folders, path)
     setFolders(next)
     await rpc.request.setPreferences({ workspaceFolders: next })
   }, [folders])

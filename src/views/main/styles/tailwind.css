@@ -50,6 +50,15 @@ body {
   user-select: none;
 }
 
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-app-region: no-drag;
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+
 /* ── Glass primitive ──────────────────────────────────────────────────────── */
 .glass {
   background: var(--color-glass-bg);
@@ -103,7 +112,14 @@ body {
 }
 .editor-content p { margin: 0 0 0.8em; }
 .editor-content ul, .editor-content ol { padding-left: 1.5em; margin: 0 0 0.8em; }
+.editor-content ul { list-style: disc; }
+.editor-content ol { list-style: decimal; }
+.editor-content ul ul { list-style: circle; }
+.editor-content ul ul ul { list-style: square; }
+.editor-content ol ol { list-style: lower-alpha; }
+.editor-content ol ol ol { list-style: lower-roman; }
 .editor-content li { margin-bottom: 0.2em; }
+.editor-content li > p { margin: 0; }
 .editor-content blockquote {
   border-left: 3px solid var(--color-accent);
   margin: 0.8em 0;

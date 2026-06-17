@@ -2,10 +2,13 @@ import { useCallback, useDeferredValue, useEffect, useState, useRef } from "reac
 import { SourceEditor } from "./SourceEditor"
 import { MarkdownPreview } from "./MarkdownPreview"
 import { useSyncedScroll } from "./useSyncedScroll"
+import type { EditorSelectionRange } from "../../../shared/types"
 
 interface SplitEditorProps {
   content: string
   onChange: (value: string) => void
+  selection?: EditorSelectionRange | null
+  onSelectionChange?: (selection: EditorSelectionRange) => void
 }
 
 function useCodeMirrorScroller(containerRef: React.RefObject<HTMLDivElement | null>) {
@@ -41,7 +44,7 @@ function useCallbackRef() {
   return [ref, el] as const
 }
 
-export function SplitEditor({ content, onChange }: SplitEditorProps) {
+export function SplitEditor({ content, onChange, selection, onSelectionChange }: SplitEditorProps) {
   const deferredContent = useDeferredValue(content)
   const handleChange = useCallback((value: string) => onChange(value), [onChange])
 
@@ -59,7 +62,12 @@ export function SplitEditor({ content, onChange }: SplitEditorProps) {
         className="flex-1 overflow-hidden border-r"
         style={{ borderColor: "var(--color-glass-border)" }}
       >
-        <SourceEditor content={content} onChange={handleChange} />
+        <SourceEditor
+          content={content}
+          onChange={handleChange}
+          selection={selection}
+          onSelectionChange={onSelectionChange}
+        />
       </div>
 
       {/* Preview pane */}

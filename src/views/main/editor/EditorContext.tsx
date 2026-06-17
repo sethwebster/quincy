@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
-import type { EditorMode } from "../../../shared/types"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
+import type { EditorMode, EditorSelectionRange, EditorSelections, EditorSession } from "../../../shared/types"
 import { rpc } from "../rpc/client"
 
 interface EditorState {
@@ -8,6 +8,8 @@ interface EditorState {
   activeFilePath: string | null
   content: string
   isDirty: boolean
+  selections: EditorSelections
+  isRestoring: boolean
 }
 
 interface EditorActions {
@@ -16,6 +18,7 @@ interface EditorActions {
   openFile: (path: string, content: string) => void
   closeFile: () => void
   setContent: (content: string) => void
+  setSelection: (mode: EditorMode, selection: EditorSelectionRange) => void
   markClean: () => void
 }
 
@@ -43,17 +46,85 @@ function useFileSave(
   }, [content, isDirty, activeFilePath, markClean])
 }
 
+function clampSelection(selection: EditorSelectionRange, content: string): EditorSelectionRange {
+  const from = Math.max(0, Math.min(selection.from, content.length))
+  const to = Math.max(0, Math.min(selection.to, content.length))
+  return { from, to }
+}
+
+function useCloseFile(closeFile: () => void) {
+  useEffect(() => {
+    function handler() { closeFile() }
+    window.addEventListener("quincy:closeFile", handler)
+    return () => window.removeEventListener("quincy:closeFile", handler)
+  }, [closeFile])
+}
+
+function useRestoreEditorSession(
+  restoreSession: (session: EditorSession, content?: string) => void,
+  markRestoreDone: () => void,
+) {
+  useEffect(() => {
+    let cancelled = false
+
+    async function restore() {
+      const prefs = await rpc.request.getPreferences({})
+      const session = prefs.editorSession
+      if (!session || cancelled) {
+        markRestoreDone()
+        return
+      }
+
+      if (session.activeFilePath) {
+        const fileContent = await rpc.request.readFile({ path: session.activeFilePath })
+        if (!cancelled) restoreSession(session, fileContent)
+      } else if (!cancelled) {
+        restoreSession(session)
+      }
+
+      if (!cancelled) markRestoreDone()
+    }
+
+    void restore()
+    return () => {
+      cancelled = true
+    }
+  }, [restoreSession, markRestoreDone])
+}
+
+function usePersistEditorSession(session: EditorSession, isRestoring: boolean) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (isRestoring) return
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      void rpc.request.setPreferences({ editorSession: session })
+    }, 250)
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [session, isRestoring])
+}
+
 export function EditorProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<EditorMode>("split")
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null)
   const [activeFilePath, setActiveFilePath] = useState<string | null>(null)
   const [content, setContentState] = useState("")
   const [isDirty, setIsDirty] = useState(false)
+  const [selections, setSelections] = useState<EditorSelections>({})
+  const [isRestoring, setIsRestoring] = useState(true)
 
   // Stable content ref for consumers that need latest without re-subscribing
   const contentRef = useRef(content)
 
   const setMode = useCallback((m: EditorMode) => setModeState(m), [])
+
+  const selectDocument = useCallback((id: string | null) => {
+    setActiveDocumentId(id)
+    if (id) setActiveFilePath(null)
+  }, [])
 
   const setContent = useCallback((c: string) => {
     contentRef.current = c
@@ -79,13 +150,38 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
     setIsDirty(false)
   }, [])
 
-  useFileSave(content, isDirty, activeFilePath, markClean)
+  const setSelection = useCallback((editorMode: EditorMode, selection: EditorSelectionRange) => {
+    setSelections((current) => ({
+      ...current,
+      [editorMode]: clampSelection(selection, contentRef.current),
+    }))
+  }, [])
 
-  useEffect(() => {
-    function handler() { closeFile() }
-    window.addEventListener("quincy:closeFile", handler)
-    return () => window.removeEventListener("quincy:closeFile", handler)
-  }, [closeFile])
+  const restoreSession = useCallback((session: EditorSession, restoredContent = "") => {
+    setModeState(session.mode)
+    setActiveDocumentId(session.activeDocumentId)
+    setActiveFilePath(session.activeFilePath)
+    setSelections(session.selections)
+    if (session.activeFilePath) {
+      contentRef.current = restoredContent
+      setContentState(restoredContent)
+      setIsDirty(false)
+    }
+  }, [])
+
+  const markRestoreDone = useCallback(() => setIsRestoring(false), [])
+
+  const editorSession = useMemo<EditorSession>(() => ({
+    mode,
+    activeDocumentId,
+    activeFilePath,
+    selections,
+  }), [mode, activeDocumentId, activeFilePath, selections])
+
+  useFileSave(content, isDirty, activeFilePath, markClean)
+  useCloseFile(closeFile)
+  useRestoreEditorSession(restoreSession, markRestoreDone)
+  usePersistEditorSession(editorSession, isRestoring)
 
   return (
     <EditorContext.Provider
@@ -95,11 +191,14 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
         activeFilePath,
         content,
         isDirty,
+        selections,
+        isRestoring,
         setMode,
-        setActiveDocumentId,
+        setActiveDocumentId: selectDocument,
         openFile,
         closeFile,
         setContent,
+        setSelection,
         markClean,
       }}
     >
