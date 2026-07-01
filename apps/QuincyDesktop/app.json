@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Quincy",
+    "slug": "quincy-desktop",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.quincy.app"
+    },
+    "android": {
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false,
+      "package": "com.quincy.app"
+    },
+    "platforms": ["android", "ios", "macos", "windows"],
+    "macos": {
+      "bundleIdentifier": "com.quincy.app"
+    },
+    "plugins": [
+      [
+        "expo-desktop-config-plugins",
+        {
+          "displayName": "Quincy",
+          "bundleIdentifier": "com.quincy.app"
+        }
+      ]
+    ]
+  }
+}
