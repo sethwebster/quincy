@@ -4,12 +4,12 @@
 
 **A markdown editor that gets out of your way.**
 
-Glassy, fast, and beautiful — Quincy is a cross-platform desktop editor where the document *is* the interface. Write in rich text, split view, or raw markdown. Never lose a keystroke.
+Glassy, fast, and beautiful — Quincy is a desktop editor where the document *is* the interface. Write in rich text, split view, or raw markdown. Never lose a keystroke. macOS today; Windows and Linux are planned.
 
 <br />
 
 ![Status](https://img.shields.io/badge/status-early_development-8b5cf6?style=flat-square)
-![Platform](https://img.shields.io/badge/platform-macOS_·_Windows_·_Linux-1f2937?style=flat-square)
+![Platform](https://img.shields.io/badge/platform-macOS_(Windows_·_Linux_planned)-1f2937?style=flat-square)
 ![Built with Bun](https://img.shields.io/badge/built_with-Bun-f9f1e1?style=flat-square)
 ![Powered by Electrobun](https://img.shields.io/badge/powered_by-Electrobun-8b5cf6?style=flat-square)
 ![License](https://img.shields.io/badge/license-AGPL--3.0-8b5cf6?style=flat-square)
@@ -18,11 +18,15 @@ Glassy, fast, and beautiful — Quincy is a cross-platform desktop editor where 
 
 ---
 
+> **Current state:** The editor core works — open, edit, and save local markdown files across all three modes. Real-time Convex sync is wired but not yet deployed to production. The AI assistant panel is in active development. Windows and Linux builds are not yet available.
+
+---
+
 ## Why Quincy
 
 Most markdown editors force a choice: *pretty* or *powerful*. Quincy refuses the tradeoff.
 
-- **⚡ Instantaneous** — preview debounce ≤100ms, parsing off the main thread. Typing never stutters.
+- **⚡ Instantaneous** — preview updates in ≤100ms. Typing never stutters.
 - **🪟 Glassy & quiet** — frosted panels, dark-mode-first, minimal chrome. The UI recedes so the writing leads.
 - **🔒 No content loss, ever** — switch modes mid-sentence and your document survives byte-for-byte.
 - **☁️ Real-time sync** — documents stay live across sessions via Convex.
@@ -40,21 +44,25 @@ Most markdown editors force a choice: *pretty* or *powerful*. Quincy refuses the
 
 Switch freely. Your content never changes underneath you.
 
-| **Rich Text** | **Side-by-side** | **Source + Helpers** |
-|:---:|:---:|:---:|
-| ![Rich Text mode](file:///Users/sethwebster/Development/quincy/docs/images/mode-rich-text.png) | ![Side-by-side mode](file:///Users/sethwebster/Development/quincy/docs/images/mode-split.png) | ![Source mode](file:///Users/sethwebster/Development/quincy/docs/images/mode-source.png) |
-| Markdown, invisible. | Source left, preview right. | Raw markdown, gentle assists. |
+![Rich Text mode](docs/images/mode-rich-text.png)
+*Rich Text — markdown invisible.*
+
+![Side-by-side mode](docs/images/mode-split.png)
+*Side-by-side — source left, live preview right.*
+
+![Source mode](docs/images/mode-source.png)
+*Source + Helpers — raw markdown, gentle assists.*
 
 ---
 
-## The design language
+## The feel
 
-Quincy is opinionated about feel:
+Quincy is opinionated about the experience:
 
-- **Frosted glass** — `backdrop-filter` blur on every floating panel.
-- **Dark mode first** — light mode is the guest, not the host.
-- **Typographic excellence** — the reading experience is the product.
-- **Physical motion** — animations via Framer Motion that feel sprung, not scripted.
+- **It recedes** — the chrome disappears; the cursor and your words fill the screen.
+- **It's dark by default** — comfortable at midnight, not a concession to trend.
+- **It moves like it has weight** — transitions snap, settle, and bounce. Nothing floats or fades arbitrarily.
+- **Text is the product** — font sizes, line heights, and spacing are tuned for long-form reading, not UI legibility.
 
 ---
 
@@ -82,7 +90,7 @@ Quincy is opinionated about feel:
 # Install dependencies
 bun install
 
-# Generate Convex types & start the backend
+# Generate Convex types & start the backend (first run provisions your project)
 npx convex dev
 
 # Build the renderer stylesheet
@@ -92,7 +100,7 @@ bun run build:css
 bun run dev
 ```
 
-The first `npx convex dev` provisions your real `_generated/` types and Convex environment. `build:css` must run before the app can launch.
+If everything worked, Quincy opens to a blank canvas with a sidebar on the left. Open a folder from the sidebar to start browsing and editing markdown files. The first `npx convex dev` will prompt you to log in to Convex and provision a new project — this only happens once.
 
 ---
 
@@ -116,12 +124,19 @@ quincy/
 
 ## Contributing
 
-Quincy is early and moving fast. A few house rules:
+Quincy is early and moving fast. The best first contribution is [opening an issue](../../issues) — a bug you hit, lag you noticed, or UI friction that broke your focus.
 
-- **`bun` only** — never npm or yarn.
-- **Branches** are prefixed `seth/`.
-- **Architecture decisions** land as ADRs in `adr/` before implementation.
-- **The editor must feel instantaneous** — treat any perceptible lag as a bug.
+When you're ready to write code:
+
+1. **Open or claim an issue** so we're aligned before you build
+2. **Fork and branch** — use a descriptive branch name (e.g. `fix/preview-lag` or `feat/word-count`)
+3. **Run `bun test`** to confirm nothing broke
+4. **Open a PR** — link the issue and describe what changed and why
+
+A few non-negotiables:
+- `bun` only — never npm or yarn
+- Architecture decisions land as ADRs in `adr/` before code is written
+- Treat any perceptible lag as a bug — the editor must feel instantaneous
 
 ---
 
