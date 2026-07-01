@@ -60,6 +60,26 @@ function useCloseFile(closeFile: () => void) {
   }, [closeFile])
 }
 
+function useOpenFileRequest(openFile: (path: string, content: string) => void) {
+  useEffect(() => {
+    let latestRequest = 0
+
+    async function handler(e: Event) {
+      const path = (e as CustomEvent<string>).detail
+      const request = latestRequest + 1
+      latestRequest = request
+      const fileContent = await rpc.request.readFile({ path })
+      if (request === latestRequest) openFile(path, fileContent)
+    }
+
+    window.addEventListener("quincy:openFile", handler)
+    return () => {
+      latestRequest += 1
+      window.removeEventListener("quincy:openFile", handler)
+    }
+  }, [openFile])
+}
+
 function useRestoreEditorSession(
   restoreSession: (session: EditorSession, content?: string) => void,
   markRestoreDone: () => void,
@@ -180,6 +200,7 @@ export function EditorProvider({ children }: { children: React.ReactNode }) {
 
   useFileSave(content, isDirty, activeFilePath, markClean)
   useCloseFile(closeFile)
+  useOpenFileRequest(openFile)
   useRestoreEditorSession(restoreSession, markRestoreDone)
   usePersistEditorSession(editorSession, isRestoring)
 

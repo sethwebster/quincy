@@ -6,6 +6,7 @@
     "dev": "bun run build:css && concurrently -n tw,app -c blue,green \"./node_modules/.bin/tailwindcss -i src/views/main/styles/tailwind.css -o src/views/main/styles/output.css --watch\" \"electrobun dev\"",
     "build:css": "./node_modules/.bin/tailwindcss -i src/views/main/styles/tailwind.css -o src/views/main/styles/output.css",
     "build": "bun run build:css && electrobun build",
+    "build:release": "bun run build:css && ELECTROBUN_DEVELOPER_ID=\"${ELECTROBUN_DEVELOPER_ID:-Developer ID Application: Seth Webster (P8ZBH5878Q)}\" ELECTROBUN_TEAMID=\"${ELECTROBUN_TEAMID:-P8ZBH5878Q}\" PATH=\"$PWD/scripts/release-bin:$PATH\" electrobun build --env=stable && ELECTROBUN_DEVELOPER_ID=\"${ELECTROBUN_DEVELOPER_ID:-Developer ID Application: Seth Webster (P8ZBH5878Q)}\" ELECTROBUN_TEAMID=\"${ELECTROBUN_TEAMID:-P8ZBH5878Q}\" bun scripts/package-release-dmg.ts",
     "convex:dev": "npx convex dev",
     "typecheck": "tsc --noEmit"
   },

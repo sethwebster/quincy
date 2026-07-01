@@ -32,7 +32,9 @@ export default {
   },
   build: {
     mac: {
+      codesign: true,
       icons: "icon.iconset",
+      notarize: true,
     },
     bun: {
       entrypoint: "src/bun/index.ts",
@@ -51,7 +53,11 @@ export default {
       "assets/logo.png": "views/main/logo.png",
     },
   },
+  scripts: {
+    postBuild: "scripts/register-markdown-documents.ts",
+  },
   release: {
     baseUrl: "https://quincy.app/releases/",
+    generatePatch: false,
   },
 } satisfies ElectrobunConfig

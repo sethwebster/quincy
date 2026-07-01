@@ -92,6 +92,7 @@ export type AppRPC = {
     }
     messages: {
       log: { msg: string; level: "info" | "warn" | "error" }
+      rendererReady: Record<string, never>
     }
   }>
   webview: RPCSchema<{
@@ -100,6 +101,7 @@ export type AppRPC = {
       themeChanged: { theme: "dark" | "light" }
       workspaceFoldersChanged: { folders: string[] }
       closeFile: Record<string, never>
+      openFile: { path: string }
       find: Record<string, never>
       reload: Record<string, never>
       toggleSidebar: Record<string, never>

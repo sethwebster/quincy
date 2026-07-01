@@ -1,11 +1,22 @@
-import { BrowserWindow, BrowserView, Utils, ApplicationMenu } from "electrobun/bun"
+import Electrobun, { BrowserWindow, BrowserView, Utils, ApplicationMenu } from "electrobun/bun"
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, watch, copyFileSync } from "node:fs"
-import { join, resolve, dirname } from "node:path"
+import { join, resolve, dirname, extname } from "node:path"
 import { homedir } from "node:os"
 import type { AppRPC, AppPreferences, DirEntry } from "../shared/types"
 import { DEFAULT_PREFERENCES } from "../shared/types"
 import { appendWorkspaceFolder, normalizeWorkspaceFolders } from "../shared/workspaceFolders"
 import { initializeUpdater, checkForUpdatesHandler, applyUpdateHandler } from "./updater"
+import {
+  markdownPathFromFileUrl,
+  normalizeMarkdownFilePath,
+  registerMarkdownFileAssociation,
+} from "./markdownFileAssociations"
+
+interface OpenUrlEvent {
+  data: {
+    url: string
+  }
+}
 
 // ─── Preferences ────────────────────────────────────────────────────────────
 
@@ -31,6 +42,38 @@ function savePreferences(prefs: AppPreferences): void {
 }
 
 let prefs = loadPreferences()
+registerMarkdownFileAssociation()
+
+let rendererReady = false
+const pendingMarkdownFileOpenPaths: string[] = []
+
+function openMarkdownFile(path: string): void {
+  if (!rendererReady) {
+    pendingMarkdownFileOpenPaths.push(path)
+    return
+  }
+
+  rpc.send.openFile({ path })
+}
+
+function flushPendingMarkdownFileOpens(): void {
+  rendererReady = true
+  while (pendingMarkdownFileOpenPaths.length > 0) {
+    const path = pendingMarkdownFileOpenPaths.shift()
+    if (path) rpc.send.openFile({ path })
+  }
+}
+
+async function showMarkdownOpenDialog(): Promise<string | null> {
+  const paths = await Utils.openFileDialog({
+    allowedFileTypes: "md",
+    canChooseFiles: true,
+    canChooseDirectory: false,
+    allowsMultipleSelection: false,
+  })
+  const first = paths[0]?.trim()
+  return first ? normalizeMarkdownFilePath(first) : null
+}
 
 // ─── Application menu (MUST be set before BrowserWindow) ────────────────────
 
@@ -48,6 +91,7 @@ ApplicationMenu.setApplicationMenu([
   {
     label: "File",
     submenu: [
+      { label: "Open File…", action: "openFile", accelerator: "o" },
       { label: "Add Folder…", action: "addFolder", accelerator: "shift+o" },
     ],
   },
@@ -93,6 +137,11 @@ ApplicationMenu.on("application-menu-clicked", async (e: unknown) => {
     rpc.send.find({})
   } else if (action === "toggleSidebar") {
     rpc.send.toggleSidebar({})
+  } else if (action === "openFile") {
+    const path = await showMarkdownOpenDialog()
+    if (!path) return
+
+    openMarkdownFile(path)
   } else if (action === "addFolder") {
     const paths = await Utils.openFileDialog({
       canChooseDirectory: true,
@@ -124,7 +173,7 @@ const rpc = BrowserView.defineRPC<AppRPC>({
       },
       readFile: async ({ path }) => readFileSync(path, "utf-8"),
       writeFile: async ({ path, content }) => writeFileSync(path, content, "utf-8"),
-      showOpenDialog: async () => null,
+      showOpenDialog: showMarkdownOpenDialog,
       showSaveDialog: async () => null,
       showOpenFolderDialog: async () => {
         const paths = await Utils.openFileDialog({
@@ -188,8 +237,14 @@ const rpc = BrowserView.defineRPC<AppRPC>({
         const fn = level === "error" ? console.error : level === "warn" ? console.warn : console.log
         fn(`[renderer] ${msg}`)
       },
+      rendererReady: () => flushPendingMarkdownFileOpens(),
     },
   },
+})
+
+Electrobun.events.on("open-url", (event: OpenUrlEvent) => {
+  const path = markdownPathFromFileUrl(event.data.url)
+  if (path) openMarkdownFile(path)
 })
 
 // ─── Window ─────────────────────────────────────────────────────────────────

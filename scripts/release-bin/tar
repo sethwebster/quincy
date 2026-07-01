@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+for arg in "$@"; do
+  if [[ "$arg" == "-cf" || "$arg" == -*c*f* ]]; then
+    exec /usr/bin/tar --no-xattrs --format ustar "$@"
+  fi
+done
+
+exec /usr/bin/tar "$@"

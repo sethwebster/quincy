@@ -17,6 +17,9 @@ export const rpc = Electroview.defineRPC<AppRPC>({
       closeFile: () => {
         window.dispatchEvent(new CustomEvent("quincy:closeFile"))
       },
+      openFile: ({ path }) => {
+        window.dispatchEvent(new CustomEvent("quincy:openFile", { detail: path }))
+      },
       find: () => {
         window.dispatchEvent(new CustomEvent("quincy:find"))
       },
@@ -32,3 +35,5 @@ export const rpc = Electroview.defineRPC<AppRPC>({
 
 // Instantiating Electroview sets the RPC transport — must happen at module load.
 export const electro = new Electroview({ rpc })
+
+void rpc.send.rendererReady({})
