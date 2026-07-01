@@ -3,6 +3,16 @@ dist/
 build/
 .env
 .env.local
+.claude/
+.omo/
+.playwright-mcp/
+.sisyphus/
+artifacts/
+graphify-out/
+.expo/
+.xcode.env.local
+*.keystore
+*.jks
 .claude/settings.local.json
 
 # Electrobun build output
@@ -19,3 +29,14 @@ convex/_generated/*.ts
 
 # macOS
 .DS_Store
+
+# Local tooling state and generated artifacts (not source)
+.omo/
+.playwright-mcp/
+.sisyphus/
+artifacts/
+graphify-out/
+
+# Expo/react-native-macos port experiment — parallel shell, not part of the
+# Electrobun app build. Delete or promote deliberately.
+apps/QuincyDesktop/
