@@ -1,15 +1,15 @@
 import { useRef, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Search } from "lucide-react"
+import { FileText, Search, Text } from "lucide-react"
 import { Glass } from "../components/Glass"
-import type { DirEntry } from "../../../shared/types"
+import type { QuickOpenResult } from "./useQuickOpen"
 
 interface QuickOpenModalProps {
   query: string
   onQueryChange: (q: string) => void
-  results: DirEntry[]
+  results: QuickOpenResult[]
   selectedIndex: number
-  onSelect: (entry: DirEntry) => void
+  onSelect: (result: QuickOpenResult) => void
   onKeyDown: (e: React.KeyboardEvent) => void
   onClose: () => void
 }
@@ -85,7 +85,10 @@ export function QuickOpenModal({
           <input
             ref={inputRef}
             type="text"
-            placeholder="Search files..."
+            placeholder="Search files and content..."
+            spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             onKeyDown={onKeyDown}
@@ -104,26 +107,38 @@ export function QuickOpenModal({
               {query ? "No matching files" : "No files found"}
             </div>
           )}
-          {results.map((entry, i) => (
+          {results.map((result, i) => (
             <button
-              key={entry.path}
+              key={result.kind === "content" ? `${result.path}:${result.lineNumber}` : result.path}
               className="flex w-full items-center gap-3 px-4 py-1.5 text-left text-sm transition-colors"
               style={{
                 background: i === selectedIndex ? "var(--color-glass-hover)" : "transparent",
                 color: "var(--color-text-primary)",
               }}
-              onClick={() => onSelect(entry)}
+              onClick={() => onSelect(result)}
               onMouseEnter={() => {
                 // Intentionally no-op: keyboard drives selection
               }}
             >
-              <span className="truncate font-medium">{entry.name}</span>
-              <span
-                className="truncate text-xs"
-                style={{ color: "var(--color-text-muted)" }}
-              >
-                {shortenPath(entry.path)}
-              </span>
+              {result.kind === "file" ? (
+                <>
+                  <FileText size={13} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />
+                  <span className="truncate font-medium">{result.name}</span>
+                  <span className="truncate text-xs" style={{ color: "var(--color-text-muted)" }}>
+                    {shortenPath(result.path)}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Text size={13} style={{ color: "var(--color-accent)", flexShrink: 0 }} />
+                  <span className="min-w-0 flex-1 truncate text-xs" style={{ color: "var(--color-text-secondary)" }}>
+                    {result.snippet}
+                  </span>
+                  <span className="shrink-0 truncate text-xs" style={{ color: "var(--color-text-muted)" }}>
+                    {result.name}:{result.lineNumber}
+                  </span>
+                </>
+              )}
             </button>
           ))}
         </div>

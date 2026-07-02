@@ -54,7 +54,9 @@ export default {
     },
   },
   scripts: {
-    postBuild: "scripts/register-markdown-documents.ts",
+    // Bundles the Quincy MCP server into Resources/app/mcp and chains the
+    // markdown-registration step if present.
+    postBuild: "scripts/postbuild.ts",
   },
   release: {
     baseUrl: "https://quincy.app/releases/",

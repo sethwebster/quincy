@@ -12,6 +12,8 @@
   --color-glass-border: rgba(255, 255, 255, 0.07);
   --color-glass-hover: rgba(255, 255, 255, 0.07);
 
+  --color-backdrop-modal: rgba(0, 0, 0, 0.45);
+
   /* ── Text ─────────────────────────────────────────────────────────────── */
   --color-text-primary: rgba(255, 255, 255, 0.92);
   --color-text-secondary: rgba(255, 255, 255, 0.55);
@@ -27,6 +29,92 @@
   --color-danger: #f87171;
   --color-success: #6ee7b7;
   --color-warning: #fbbf24;
+
+  /* ── Chrome details ───────────────────────────────────────────────────── */
+  --color-scrollbar: rgba(255, 255, 255, 0.12);
+  --color-scrollbar-hover: rgba(255, 255, 255, 0.22);
+  --color-code-bg: rgba(255, 255, 255, 0.08);
+  --color-pre-bg: rgba(0, 0, 0, 0.4);
+  --color-table-header-bg: rgba(255, 255, 255, 0.05);
+}
+
+/* ── CodeMirror syntax tokens (JS-side styles read these via var()) ──────── */
+:root {
+  --color-cm-text: rgba(255, 255, 255, 0.88);
+  --color-cm-heading: rgba(255, 255, 255, 0.98);
+  --color-cm-dim: rgba(255, 255, 255, 0.7);
+  --color-cm-punct: rgba(255, 255, 255, 0.55);
+  --color-cm-quote: rgba(255, 255, 255, 0.55);
+  --color-cm-meta: rgba(255, 255, 255, 0.45);
+  --color-cm-comment: rgba(255, 255, 255, 0.35);
+  --color-cm-gutter: rgba(255, 255, 255, 0.2);
+  --color-cm-active-line: rgba(255, 255, 255, 0.03);
+  --color-cm-selection: rgba(124, 106, 247, 0.25);
+  --color-cm-url: rgba(124, 106, 247, 0.7);
+  --color-syntax-string: rgba(110, 231, 183, 0.9);
+  --color-syntax-keyword: rgba(199, 146, 234, 0.95);
+  --color-syntax-number: rgba(255, 180, 84, 0.95);
+  --color-syntax-regexp: rgba(255, 140, 140, 0.9);
+  --color-syntax-tag: rgba(255, 140, 140, 0.95);
+  --color-syntax-type: rgba(255, 203, 107, 0.95);
+  --color-syntax-property: rgba(130, 170, 255, 0.95);
+}
+
+/* ── Light appearance ─────────────────────────────────────────────────────
+   Dark is the host (tokens above); light overrides the same tokens so every
+   component styled through var(--color-*) follows automatically. */
+html { color-scheme: dark; }
+html[data-theme="light"] {
+  color-scheme: light;
+
+  --color-surface-0: #f3f2ee;
+  --color-surface-1: #faf9f6;
+  --color-surface-2: #ffffff;
+  --color-surface-3: #ffffff;
+
+  --color-glass-bg: rgba(20, 20, 30, 0.03);
+  --color-glass-border: rgba(20, 20, 30, 0.10);
+  --color-glass-hover: rgba(20, 20, 30, 0.06);
+
+  --color-backdrop-modal: rgba(20, 20, 30, 0.25);
+
+  --color-text-primary: rgba(22, 22, 28, 0.92);
+  --color-text-secondary: rgba(22, 22, 28, 0.60);
+  --color-text-muted: rgba(22, 22, 28, 0.38);
+  --color-text-placeholder: rgba(22, 22, 28, 0.28);
+
+  --color-accent: #6553e8;
+  --color-accent-dim: rgba(101, 83, 232, 0.12);
+  --color-accent-glow: rgba(101, 83, 232, 0.20);
+
+  --color-danger: #dc2626;
+  --color-success: #059669;
+  --color-warning: #d97706;
+
+  --color-scrollbar: rgba(22, 22, 28, 0.18);
+  --color-scrollbar-hover: rgba(22, 22, 28, 0.32);
+  --color-code-bg: rgba(22, 22, 28, 0.07);
+  --color-pre-bg: rgba(22, 22, 28, 0.05);
+  --color-table-header-bg: rgba(22, 22, 28, 0.04);
+
+  --color-cm-text: rgba(22, 22, 28, 0.88);
+  --color-cm-heading: rgba(10, 10, 16, 0.98);
+  --color-cm-dim: rgba(22, 22, 28, 0.7);
+  --color-cm-punct: rgba(22, 22, 28, 0.55);
+  --color-cm-quote: rgba(22, 22, 28, 0.6);
+  --color-cm-meta: rgba(22, 22, 28, 0.45);
+  --color-cm-comment: rgba(22, 22, 28, 0.4);
+  --color-cm-gutter: rgba(22, 22, 28, 0.3);
+  --color-cm-active-line: rgba(22, 22, 28, 0.04);
+  --color-cm-selection: rgba(101, 83, 232, 0.20);
+  --color-cm-url: rgba(101, 83, 232, 0.8);
+  --color-syntax-string: #047857;
+  --color-syntax-keyword: #7e22ce;
+  --color-syntax-number: #b45309;
+  --color-syntax-regexp: #be123c;
+  --color-syntax-tag: #be123c;
+  --color-syntax-type: #92400e;
+  --color-syntax-property: #1d4ed8;
 }
 
 /* ── Base reset ───────────────────────────────────────────────────────────── */
@@ -89,19 +177,30 @@ textarea,
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--color-scrollbar);
   border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: var(--color-scrollbar-hover);
 }
 
 /* ── Editor typography ────────────────────────────────────────────────────── */
+:root {
+  --font-editor: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+html[data-font="serif"] {
+  --font-editor: "Iowan Old Style", "Palatino", Georgia, serif;
+}
+html[data-font="mono"] {
+  --font-editor: "JetBrains Mono", "SF Mono", Menlo, monospace;
+}
+
 .editor-content {
   user-select: text;
   cursor: text;
   line-height: 1.75;
   letter-spacing: 0.01em;
+  font-family: var(--font-editor);
 }
 
 .editor-content h1 { font-size: 2em; font-weight: 700; margin: 0.6em 0 0.4em; }
@@ -130,12 +229,12 @@ textarea,
 .editor-content code {
   font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
   font-size: 0.875em;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--color-code-bg);
   padding: 0.1em 0.35em;
   border-radius: 4px;
 }
 .editor-content pre {
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--color-pre-bg);
   border: 1px solid var(--color-glass-border);
   border-radius: 8px;
   padding: 1em;
@@ -166,7 +265,7 @@ textarea,
   padding: 0.4em 0.8em;
   text-align: left;
 }
-.editor-content th { background: rgba(255,255,255,0.05); font-weight: 600; }
+.editor-content th { background: var(--color-table-header-bg); font-weight: 600; }
 
 /* ── TipTap focus ─────────────────────────────────────────────────────────── */
 .ProseMirror { outline: none; }
@@ -176,6 +275,91 @@ textarea,
   pointer-events: none;
   float: left;
   height: 0;
+}
+
+/* ── Assistant panel ──────────────────────────────────────────────────────── */
+.assistant-composer textarea::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
+.assistant-markdown > :first-child { margin-top: 0; }
+.assistant-markdown > :last-child { margin-bottom: 0; }
+.assistant-markdown p { margin: 0 0 0.6em; }
+.assistant-markdown h1, .assistant-markdown h2, .assistant-markdown h3 {
+  font-weight: 600;
+  margin: 0.6em 0 0.3em;
+}
+.assistant-markdown h1 { font-size: 1.3em; }
+.assistant-markdown h2 { font-size: 1.15em; }
+.assistant-markdown h3 { font-size: 1.05em; }
+.assistant-markdown ul, .assistant-markdown ol { padding-left: 1.4em; margin: 0 0 0.6em; }
+.assistant-markdown ul { list-style: disc; }
+.assistant-markdown ol { list-style: decimal; }
+.assistant-markdown li { margin-bottom: 0.15em; }
+.assistant-markdown a { color: var(--color-accent); text-decoration: none; }
+.assistant-markdown a:hover { text-decoration: underline; }
+.assistant-markdown code {
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.85em;
+  background: var(--color-code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+.assistant-markdown pre {
+  background: var(--color-pre-bg);
+  border: 1px solid var(--color-glass-border);
+  border-radius: 8px;
+  padding: 0.8em;
+  overflow-x: auto;
+  margin: 0 0 0.6em;
+}
+.assistant-markdown pre code { background: none; padding: 0; }
+.assistant-markdown blockquote {
+  border-left: 3px solid var(--color-accent);
+  margin: 0.6em 0;
+  padding: 0.1em 0 0.1em 0.8em;
+  color: var(--color-text-secondary);
+}
+
+.assistant-composer,
+.assistant-composer * {
+  -webkit-app-region: no-drag;
+}
+
+.assistant-composer :is(input, textarea) {
+  background: transparent;
+  color: var(--color-text-primary);
+  caret-color: var(--color-accent);
+  color-scheme: dark;
+  -webkit-text-fill-color: var(--color-text-primary);
+}
+
+.assistant-composer :is(input, textarea)::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+  -webkit-text-fill-color: var(--color-text-muted);
+}
+
+.assistant-caret {
+  display: inline-block;
+  margin-left: 1px;
+  color: var(--color-accent);
+  animation: assistant-blink 1s steps(2, start) infinite;
+}
+@keyframes assistant-blink { to { opacity: 0; } }
+
+.assistant-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: assistant-bounce 1.2s ease-in-out infinite;
+}
+@keyframes assistant-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
 }
 
 /* ── CodeMirror overrides ─────────────────────────────────────────────────── */

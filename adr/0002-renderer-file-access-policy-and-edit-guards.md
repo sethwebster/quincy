@@ -64,6 +64,18 @@ failures surface in a visible banner and stay pending for retry.
 overwrite a file modified outside Quincy. `readFile` returns
 `{ content, mtimeMs }` so the renderer tracks what it read.
 
+### 5. Update-channel integrity gate
+
+Inspection of Electrobun's `Updater` confirmed it performs no cryptographic
+verification of downloaded artifacts (its "hash" is a version label read from
+the artifact itself) and strips quarantine attributes from the swapped-in
+bundle, so Gatekeeper never re-checks it — a compromised release server would
+be silent RCE on every install. `applyUpdateHandler` now refuses to apply an
+update unless the downloaded tar contains an `.app` that passes
+`codesign --verify --deep --strict` and is signed by Quincy's Team ID
+(`src/bun/updateVerification.ts`). Server compromise alone can no longer ship
+code; an attacker would also need the Apple signing identity.
+
 ## Alternatives considered
 
 - **Full sandboxing of the renderer path space via chroot/sandbox-exec** —

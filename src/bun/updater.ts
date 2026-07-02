@@ -1,6 +1,8 @@
 import { Updater } from "electrobun/bun"
 import type { UpdateStatusEntry } from "electrobun/bun"
+import { join } from "node:path"
 import type { UpdateStatusPayload } from "../shared/types"
+import { verifyUpdateTar } from "./updateVerification"
 
 const HOUR_MS = 60 * 60 * 1000
 const INITIAL_DELAY_MS = 5 * 60 * 1000 // 5 min — don't block startup
@@ -21,7 +23,6 @@ function toPayload(entry: UpdateStatusEntry): UpdateStatusPayload {
     errorMessage: entry.details?.errorMessage,
   }
 }
-
 function emit(payload: UpdateStatusPayload) {
   sendStatus?.(payload)
 }
@@ -57,7 +58,7 @@ async function checkForUpdates() {
 
     if (info.updateAvailable && !info.updateReady) {
       // kick off background download without blocking
-      downloadUpdateAsync()
+      void downloadUpdateAsync()
     }
   } finally {
     isChecking = false
@@ -75,12 +76,29 @@ async function downloadUpdateAsync() {
 }
 
 export async function checkForUpdatesHandler(): Promise<void> {
-  checkForUpdates()
+  await checkForUpdates()
 }
 
 export async function applyUpdateHandler(): Promise<void> {
   const info = Updater.updateInfo()
   if (!info?.updateReady) return
+
+  // Electrobun's updater does not verify downloaded artifacts and strips
+  // quarantine on the swapped bundle — gate the apply on our own signature
+  // check so a compromised release channel can't ship unsigned code.
+  const appDataFolder = await Updater.appDataFolder()
+  const tarPath = join(appDataFolder, "self-extraction", `${info.hash}.tar`)
+  const verification = await verifyUpdateTar(tarPath)
+  if (!verification.ok) {
+    console.error(`[updater] Refusing to apply update: ${verification.reason}`)
+    emit({
+      status: "error",
+      message: "Update rejected: signature verification failed",
+      errorMessage: verification.reason,
+    })
+    return
+  }
+
   await Updater.applyUpdate()
 }
 
@@ -93,14 +111,7 @@ export function initializeUpdater(onStatus: (payload: UpdateStatusPayload) => vo
 
   // Delay first check so app startup isn't blocked
   initialTimer = setTimeout(() => {
-    checkForUpdates()
-    hourlyTimer = setInterval(checkForUpdates, HOUR_MS)
+    void checkForUpdates()
+    hourlyTimer = setInterval(() => void checkForUpdates(), HOUR_MS)
   }, INITIAL_DELAY_MS)
-}
-
-export function disposeUpdater() {
-  if (initialTimer) clearTimeout(initialTimer)
-  if (hourlyTimer) clearInterval(hourlyTimer)
-  Updater.onStatusChange(null)
-  sendStatus = null
 }

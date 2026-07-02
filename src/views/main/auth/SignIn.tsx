@@ -37,7 +37,8 @@ export function SignIn() {
       await signIn("resend-otp", fd)
       setStep({ kind: "code", email })
     } catch (err) {
-      setError("Couldn't send code. Check your email and try again.")
+      const reason = err instanceof Error ? err.message : String(err)
+      setError(`Couldn't send code (${reason}). Check your email and try again.`)
     } finally {
       setLoading(false)
     }

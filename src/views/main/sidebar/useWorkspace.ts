@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { appendWorkspaceFolder, normalizeWorkspaceFolders } from "../../../shared/workspaceFolders"
 import { rpc } from "../rpc/client"
+import { reportAppError } from "../errors"
 
 export function useWorkspace() {
   const [folders, setFolders] = useState<string[]>([])
@@ -8,10 +9,11 @@ export function useWorkspace() {
 
   // Load persisted folders on mount
   useEffect(() => {
-    void rpc.request.getPreferences({}).then((prefs) => {
-      setFolders(normalizeWorkspaceFolders(prefs.workspaceFolders ?? []))
-      setLoading(false)
-    })
+    rpc.request
+      .getPreferences({})
+      .then((prefs) => setFolders(normalizeWorkspaceFolders(prefs.workspaceFolders ?? [])))
+      .catch((error) => reportAppError("Couldn't load workspace folders", error))
+      .finally(() => setLoading(false))
   }, [])
 
   // Sync when bun updates folders via the app menu

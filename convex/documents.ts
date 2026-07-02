@@ -7,11 +7,14 @@ export const list = query({
   handler: async (ctx) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) return []
+    // Bounded: newest 500 documents. Docs beyond the cap are unreachable in
+    // the UI — cursor pagination is required before this is a real library
+    // surface (tracked with the cloud-docs product decision).
     return await ctx.db
       .query("documents")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
-      .collect()
+      .take(500)
   },
 })
 

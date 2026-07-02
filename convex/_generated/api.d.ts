@@ -9,6 +9,7 @@
  */
 
 import type * as ResendOTP from "../ResendOTP.js";
+import type * as assistant from "../assistant.js";
 import type * as auth from "../auth.js";
 import type * as documents from "../documents.js";
 import type * as http from "../http.js";
@@ -21,6 +22,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   ResendOTP: typeof ResendOTP;
+  assistant: typeof assistant;
   auth: typeof auth;
   documents: typeof documents;
   http: typeof http;

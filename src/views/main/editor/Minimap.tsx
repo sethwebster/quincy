@@ -46,17 +46,25 @@ function parseContent(content: string): ParsedLine[] {
   return result
 }
 
-const COLORS: Record<LineType, string> = {
-  h1:           "rgba(255,255,255,0.95)",
-  h2:           "rgba(255,255,255,0.85)",
-  h3:           "rgba(255,255,255,0.75)",
-  heading:      "rgba(255,255,255,0.65)",
-  "code-fence": "rgba(110,231,183,0.55)",
-  "code-block": "rgba(110,231,183,0.38)",
-  quote:        "rgba(148,130,244,0.55)",
-  list:         "rgba(255,255,255,0.45)",
-  text:         "rgba(255,255,255,0.35)",
-  empty:        "",
+// Canvas can't read CSS variables, so ink is picked per resolved theme.
+function isLightTheme(): boolean {
+  return document.documentElement.getAttribute("data-theme") === "light"
+}
+
+function minimapColors(): Record<LineType, string> {
+  const ink = isLightTheme() ? "22,22,28" : "255,255,255"
+  return {
+    h1:           `rgba(${ink},0.95)`,
+    h2:           `rgba(${ink},0.85)`,
+    h3:           `rgba(${ink},0.75)`,
+    heading:      `rgba(${ink},0.65)`,
+    "code-fence": isLightTheme() ? "rgba(4,120,87,0.55)" : "rgba(110,231,183,0.55)",
+    "code-block": isLightTheme() ? "rgba(4,120,87,0.38)" : "rgba(110,231,183,0.38)",
+    quote:        isLightTheme() ? "rgba(101,83,232,0.55)" : "rgba(148,130,244,0.55)",
+    list:         `rgba(${ink},0.45)`,
+    text:         `rgba(${ink},0.35)`,
+    empty:        "",
+  }
 }
 
 const LINE_H: Record<LineType, number> = {
@@ -90,6 +98,7 @@ function drawMinimap(
   const PAD = 8 * dpr
   const contentW = cw - PAD * 2
   let y = 4 * dpr
+  const colors = minimapColors()
 
   for (const line of lines) {
     if (y >= ch) break
@@ -97,7 +106,7 @@ function drawMinimap(
     const gap = dpr
 
     if (line.type !== "empty" && line.textWidth > 0) {
-      ctx.fillStyle = COLORS[line.type]
+      ctx.fillStyle = colors[line.type]
       const indent = line.indent * 8 * dpr
       const lineW = line.textWidth * (contentW - indent)
       ctx.fillRect(PAD + indent, y, lineW, lh)
@@ -111,9 +120,10 @@ function drawMinimap(
   const alpha = indicatorActive ? 0.14 : 0.06
   const borderAlpha = indicatorActive ? 0.25 : 0.13
 
-  ctx.fillStyle = `rgba(255,255,255,${alpha})`
+  const indicatorInk = isLightTheme() ? "22,22,28" : "255,255,255"
+  ctx.fillStyle = `rgba(${indicatorInk},${alpha})`
   ctx.fillRect(0, indicatorTop, cw, indicatorH)
-  ctx.fillStyle = `rgba(255,255,255,${borderAlpha})`
+  ctx.fillStyle = `rgba(${indicatorInk},${borderAlpha})`
   ctx.fillRect(0, indicatorTop, cw, dpr)
   ctx.fillRect(0, indicatorTop + indicatorH - dpr, cw, dpr)
 }
