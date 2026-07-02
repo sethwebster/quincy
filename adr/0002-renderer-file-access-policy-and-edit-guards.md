@@ -69,12 +69,16 @@ overwrite a file modified outside Quincy. `readFile` returns
 Inspection of Electrobun's `Updater` confirmed it performs no cryptographic
 verification of downloaded artifacts (its "hash" is a version label read from
 the artifact itself) and strips quarantine attributes from the swapped-in
-bundle, so Gatekeeper never re-checks it — a compromised release server would
-be silent RCE on every install. `applyUpdateHandler` now refuses to apply an
-update unless the downloaded tar contains an `.app` that passes
-`codesign --verify --deep --strict` and is signed by Quincy's Team ID
-(`src/bun/updateVerification.ts`). Server compromise alone can no longer ship
-code; an attacker would also need the Apple signing identity.
+bundle, so Gatekeeper never re-checks it — a compromised release server could
+otherwise become silent RCE on every install. `applyUpdateHandler` now refuses
+to apply an update unless the downloaded tar contains `Quincy.app` with bundle
+ID `com.quincy.app`, `CFBundleShortVersionString` equal to the expected release
+version, `CFBundleVersion` strictly greater than the installed version, a valid
+`codesign --verify --deep --strict` result, and Quincy's Team ID
+(`src/bun/updateVerification.ts`). This rejects unsigned, wrong-app, and
+downgrade artifacts. It does not prove every possible channel-substitution
+scenario impossible: without a signed release manifest, the server-provided
+metadata itself is not authenticated.
 
 ## Alternatives considered
 
