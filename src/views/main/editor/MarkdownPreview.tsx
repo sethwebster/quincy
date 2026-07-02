@@ -1,4 +1,5 @@
 import ReactMarkdown, { defaultUrlTransform } from "react-markdown"
+import rehypeRaw from "rehype-raw"
 import remarkGfm from "remark-gfm"
 import { memo, forwardRef, useEffect, useState, type ComponentPropsWithoutRef } from "react"
 
@@ -75,6 +76,7 @@ export const MarkdownPreview = memo(forwardRef<HTMLDivElement, MarkdownPreviewPr
         {content.trim() ? (
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
             urlTransform={(url, key, node) => {
               if (key === "src" && node.tagName === "img" && isInlineImageDataUrl(url)) return url
               if (key === "src" && node.tagName === "img" && shouldLoadMarkdownImage(url, activeFilePath)) return url
