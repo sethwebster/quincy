@@ -73,9 +73,33 @@ const LINE_H: Record<LineType, number> = {
   quote: 2, list: 2, text: 2, empty: 3,
 }
 
-function getIndicatorBounds(ch: number, scrollPct: number, viewportPct: number, dpr: number) {
-  const indicatorH = Math.max(viewportPct * ch, 24 * dpr)
-  const indicatorTop = scrollPct * (ch - indicatorH)
+const MINIMAP_TOP_PADDING = 4
+const MINIMAP_LINE_GAP = 1
+
+interface MinimapContentSpan {
+  top: number
+  height: number
+}
+
+function getLineHeight(line: ParsedLine, dpr: number): number {
+  return LINE_H[line.type] * dpr
+}
+
+function getLineAdvance(line: ParsedLine, dpr: number): number {
+  return getLineHeight(line, dpr) + MINIMAP_LINE_GAP * dpr
+}
+
+function getMinimapContentSpan(lines: ParsedLine[], ch: number, dpr: number): MinimapContentSpan {
+  const top = MINIMAP_TOP_PADDING * dpr
+  const renderedHeight = lines.reduce((height, line) => height + getLineAdvance(line, dpr), 0)
+  const visibleHeight = Math.max(0, ch - top)
+  return { top, height: Math.min(renderedHeight, visibleHeight) }
+}
+
+function getIndicatorBounds(contentSpan: MinimapContentSpan, scrollPct: number, viewportPct: number, dpr: number) {
+  const minIndicatorH = Math.min(24 * dpr, contentSpan.height)
+  const indicatorH = Math.min(contentSpan.height, Math.max(viewportPct * contentSpan.height, minIndicatorH))
+  const indicatorTop = contentSpan.top + scrollPct * (contentSpan.height - indicatorH)
   return { top: indicatorTop, height: indicatorH }
 }
 
@@ -97,13 +121,13 @@ function drawMinimap(
 
   const PAD = 8 * dpr
   const contentW = cw - PAD * 2
-  let y = 4 * dpr
+  const contentSpan = getMinimapContentSpan(lines, ch, dpr)
+  let y = contentSpan.top
   const colors = minimapColors()
 
   for (const line of lines) {
     if (y >= ch) break
-    const lh = LINE_H[line.type] * dpr
-    const gap = dpr
+    const lh = getLineHeight(line, dpr)
 
     if (line.type !== "empty" && line.textWidth > 0) {
       ctx.fillStyle = colors[line.type]
@@ -112,11 +136,11 @@ function drawMinimap(
       ctx.fillRect(PAD + indent, y, lineW, lh)
     }
 
-    y += lh + gap
+    y += getLineAdvance(line, dpr)
   }
 
   // Viewport indicator
-  const { top: indicatorTop, height: indicatorH } = getIndicatorBounds(ch, scrollPct, viewportPct, dpr)
+  const { top: indicatorTop, height: indicatorH } = getIndicatorBounds(contentSpan, scrollPct, viewportPct, dpr)
   const alpha = indicatorActive ? 0.14 : 0.06
   const borderAlpha = indicatorActive ? 0.25 : 0.13
 
@@ -143,9 +167,11 @@ function useEditorScroller(
     setScroller(null)
 
     function find(): HTMLElement | null {
+      const primarySelector = mode === "rich" ? ".overflow-y-auto" : ".cm-scroller"
+      const secondarySelector = mode === "rich" ? ".cm-scroller" : ".overflow-y-auto"
       return (
-        (container!.querySelector(".cm-scroller") as HTMLElement | null) ??
-        (container!.querySelector(".overflow-y-auto") as HTMLElement | null)
+        (container!.querySelector(primarySelector) as HTMLElement | null) ??
+        (container!.querySelector(secondarySelector) as HTMLElement | null)
       )
     }
 
@@ -221,7 +247,7 @@ export function Minimap({ content, editorRef, mode }: MinimapProps) {
       canvas!.height = h * dpr
       canvas!.style.width  = `${w}px`
       canvas!.style.height = `${h}px`
-      drawMinimap(canvas!, lines, scrollPct, viewportPct, isDraggingRef.current)
+      drawMinimap(canvas!, lines, scrollPct, viewportPct, isDragging)
     }
 
     resizeAndDraw()
@@ -234,9 +260,11 @@ export function Minimap({ content, editorRef, mode }: MinimapProps) {
   useEffect(() => {
     function onMouseMove(e: MouseEvent) {
       if (!isDraggingRef.current || !scroller || !canvasRef.current) return
-      const rect = canvasRef.current.getBoundingClientRect()
       const dy = e.clientY - dragStartYRef.current
-      const deltaFraction = dy / rect.height
+      const dpr = window.devicePixelRatio || 1
+      const contentSpan = getMinimapContentSpan(lines, canvasRef.current.height, dpr)
+      if (contentSpan.height === 0) return
+      const deltaFraction = (dy * dpr) / contentSpan.height
       const newPct = Math.max(0, Math.min(1, dragStartScrollPctRef.current + deltaFraction))
       const max = scroller.scrollHeight - scroller.clientHeight
       scroller.scrollTop = newPct * max
@@ -254,17 +282,18 @@ export function Minimap({ content, editorRef, mode }: MinimapProps) {
       document.removeEventListener("mousemove", onMouseMove)
       document.removeEventListener("mouseup", onMouseUp)
     }
-  }, [scroller])
+  }, [scroller, lines])
 
-  function hitTestIndicator(clientY: number): boolean {
+  const hitTestIndicator = useCallback((clientY: number): boolean => {
     const canvas = canvasRef.current
     if (!canvas) return false
     const dpr = window.devicePixelRatio || 1
     const rect = canvas.getBoundingClientRect()
     const canvasY = (clientY - rect.top) * dpr
-    const { top, height } = getIndicatorBounds(canvas.height, scrollPct, viewportPct, dpr)
+    const contentSpan = getMinimapContentSpan(lines, canvas.height, dpr)
+    const { top, height } = getIndicatorBounds(contentSpan, scrollPct, viewportPct, dpr)
     return canvasY >= top && canvasY <= top + height
-  }
+  }, [lines, scrollPct, viewportPct])
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!scroller || !canvasRef.current) return
@@ -277,17 +306,19 @@ export function Minimap({ content, editorRef, mode }: MinimapProps) {
     } else {
       // Jump to clicked position
       const rect = canvasRef.current.getBoundingClientRect()
-      const pct  = (e.clientY - rect.top) / rect.height
+      const dpr = window.devicePixelRatio || 1
+      const contentSpan = getMinimapContentSpan(lines, canvasRef.current.height, dpr)
+      if (contentSpan.height === 0) return
+      const canvasY = (e.clientY - rect.top) * dpr
+      const pct = Math.max(0, Math.min(1, (canvasY - contentSpan.top) / contentSpan.height))
       const max  = scroller.scrollHeight - scroller.clientHeight
       scroller.scrollTop = pct * max
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scroller, scrollPct, viewportPct])
+  }, [hitTestIndicator, lines, scroller, scrollPct])
 
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     setIsHoveringIndicator(hitTestIndicator(e.clientY))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrollPct, viewportPct])
+  }, [hitTestIndicator])
 
   const handleMouseLeave = useCallback(() => {
     setIsHoveringIndicator(false)
@@ -306,7 +337,7 @@ export function Minimap({ content, editorRef, mode }: MinimapProps) {
       style={{
         width: "80px",
         borderLeft: "1px solid var(--color-glass-border)",
-        background: "rgba(0,0,0,0.18)",
+        background: "var(--color-glass-bg)",
         cursor,
       }}
     >
