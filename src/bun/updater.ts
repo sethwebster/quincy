@@ -88,12 +88,16 @@ export async function applyUpdateHandler(): Promise<void> {
   // check so a compromised release channel can't ship unsigned code.
   const appDataFolder = await Updater.appDataFolder()
   const tarPath = join(appDataFolder, "self-extraction", `${info.hash}.tar`)
-  const verification = await verifyUpdateTar(tarPath)
+  const currentVersion = await Updater.localInfo.version()
+  const verification = await verifyUpdateTar(tarPath, {
+    currentVersion,
+    expectedVersion: info.version,
+  })
   if (!verification.ok) {
     console.error(`[updater] Refusing to apply update: ${verification.reason}`)
     emit({
       status: "error",
-      message: "Update rejected: signature verification failed",
+      message: "Update rejected: verification failed",
       errorMessage: verification.reason,
     })
     return
