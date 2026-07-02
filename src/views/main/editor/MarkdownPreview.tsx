@@ -2,48 +2,36 @@ import ReactMarkdown, { defaultUrlTransform } from "react-markdown"
 import rehypeRaw from "rehype-raw"
 import remarkGfm from "remark-gfm"
 import { memo, forwardRef, useEffect, useState, type ComponentPropsWithoutRef } from "react"
+import { isInlineImageDataUrl, shouldBridgeMarkdownImage } from "./markdownImageUrls"
 
 interface MarkdownPreviewProps {
   readonly content: string
   readonly activeFilePath?: string | null
 }
 
-const URL_SCHEME = /^[A-Za-z][A-Za-z\d+.-]*:/
-const INLINE_IMAGE_DATA_URL = /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|svg\+xml);base64,[a-z\d+/]+=*$/i
-
-function isRelativeUrl(url: string): boolean {
-  return url.length > 0 && !url.startsWith("#") && !url.startsWith("/") && !url.startsWith("//") && !URL_SCHEME.test(url)
-}
-
-function isLocalImageUrl(url: string): boolean {
-  return isRelativeUrl(url) || url.startsWith("file://")
-}
-
-function isInlineImageDataUrl(url: string): boolean {
-  return INLINE_IMAGE_DATA_URL.test(url)
-}
-
 function initialMarkdownImageSrc(src: string | undefined, activeFilePath: string | null | undefined): string | undefined {
-  if (activeFilePath && src && isLocalImageUrl(src)) return undefined
+  if (shouldBridgeMarkdownImage(src, activeFilePath)) return undefined
   return src
 }
 
 export function shouldLoadMarkdownImage(url: string | undefined, activeFilePath: string | null | undefined): boolean {
-  return Boolean(activeFilePath && url && isLocalImageUrl(url))
+  return shouldBridgeMarkdownImage(url, activeFilePath)
 }
 
 function useMarkdownImageSrc(src: string | undefined, activeFilePath: string | null | undefined): string | undefined {
   const [resolvedSrc, setResolvedSrc] = useState<string | undefined>(() => initialMarkdownImageSrc(src, activeFilePath))
 
   useEffect(() => {
-    if (!activeFilePath || !src || !isLocalImageUrl(src)) {
+    if (!activeFilePath || !src || !shouldBridgeMarkdownImage(src, activeFilePath)) {
       setResolvedSrc(src)
       return
     }
 
     let cancelled = false
+    const markdownPath = activeFilePath
+    const imageUrl = src
     void import("../rpc/client")
-      .then(({ rpc }) => rpc.request.readMarkdownImage({ markdownPath: activeFilePath, imageUrl: src }))
+      .then(({ rpc }) => rpc.request.readMarkdownImage({ markdownPath, imageUrl }))
       .then((dataUrl) => {
         if (!cancelled) setResolvedSrc(dataUrl ?? undefined)
       })
@@ -79,7 +67,7 @@ export const MarkdownPreview = memo(forwardRef<HTMLDivElement, MarkdownPreviewPr
             rehypePlugins={[rehypeRaw]}
             urlTransform={(url, key, node) => {
               if (key === "src" && node.tagName === "img" && isInlineImageDataUrl(url)) return url
-              if (key === "src" && node.tagName === "img" && shouldLoadMarkdownImage(url, activeFilePath)) return url
+              if (key === "src" && node.tagName === "img" && shouldBridgeMarkdownImage(url, activeFilePath)) return url
               return defaultUrlTransform(url)
             }}
             components={{
