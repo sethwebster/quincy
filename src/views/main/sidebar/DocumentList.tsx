@@ -1,9 +1,9 @@
 import { useQuery, useMutation } from "convex/react"
-import { api } from "../../../../convex/_generated/api"
 import type { Id, Doc } from "../../../../convex/_generated/dataModel"
 import { motion, AnimatePresence } from "framer-motion"
 import { FileText, Trash2 } from "lucide-react"
 import { useState } from "react"
+import { api } from "../convexApi"
 
 interface DocumentListProps {
   activeId: string | null
