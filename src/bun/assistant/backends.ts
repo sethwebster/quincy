@@ -1,4 +1,6 @@
 import type { AssistantBackend } from "../../shared/types"
+import { existsSync } from "node:fs"
+import { join } from "node:path"
 
 /** A single parsed signal from one NDJSON line of CLI stdout. */
 export interface ParsedLine {
@@ -38,6 +40,48 @@ export interface Backend {
 
 const QUINCY_TOOLS = ["mcp__quincy__get_document", "mcp__quincy__edit_document"]
 
+const SYSTEM_CLI_DIRS = [
+  "/opt/homebrew/bin",
+  "/opt/homebrew/sbin",
+  "/opt/homebrew/opt/asdf/libexec/bin",
+  "/usr/local/bin",
+  "/usr/bin",
+  "/bin",
+  "/usr/sbin",
+  "/sbin",
+] as const
+
+function userCliDirs(): string[] {
+  const home = process.env.HOME
+  if (!home) return []
+  return [
+    join(home, ".local/bin"),
+    join(home, ".opencode/bin"),
+    join(home, ".bun/bin"),
+    join(home, ".cargo/bin"),
+    join(home, ".asdf/shims"),
+  ]
+}
+
+function assistantPath(): string {
+  const existing = (process.env.PATH ?? "").split(":").filter(Boolean)
+  return Array.from(new Set([...existing, ...userCliDirs(), ...SYSTEM_CLI_DIRS])).join(":")
+}
+
+export function resolveCliCommand(name: string): string | null {
+  for (const dir of [...userCliDirs(), ...SYSTEM_CLI_DIRS]) {
+    const candidate = join(dir, name)
+    if (existsSync(candidate)) return candidate
+  }
+  const fromCurrentPath = Bun.which(name)
+  if (fromCurrentPath) return fromCurrentPath
+  return null
+}
+
+export function assistantCliEnv(): NodeJS.ProcessEnv {
+  return { ...process.env, PATH: assistantPath() }
+}
+
 function labelForTool(name: string): string {
   if (name.endsWith("edit_document")) return "Editing document"
   if (name.endsWith("get_document")) return "Reading document"
@@ -68,9 +112,9 @@ function parseJsonLine(line: string): JsonObject | null {
 
 export const claudeBackend: Backend = {
   id: "claude",
-  detect: () => Bun.which("claude") !== null,
+  detect: () => resolveCliCommand("claude") !== null,
   buildSpawn(opts) {
-    const cmd = Bun.which("claude") ?? "claude"
+    const cmd = resolveCliCommand("claude") ?? "claude"
     const mcpConfigPath = `${opts.tmpDir}/quincy-mcp.json`
     const mcpConfig = {
       mcpServers: {
@@ -141,9 +185,9 @@ export const claudeBackend: Backend = {
 
 export const codexBackend: Backend = {
   id: "codex",
-  detect: () => Bun.which("codex") !== null,
+  detect: () => resolveCliCommand("codex") !== null,
   buildSpawn(opts) {
-    const cmd = Bun.which("codex") ?? "codex"
+    const cmd = resolveCliCommand("codex") ?? "codex"
     // Inject the Quincy MCP server via `-c` config overrides so the user's
     // ~/.codex/config.toml is left untouched. Values are TOML literals.
     const toml = (v: unknown) => JSON.stringify(v)

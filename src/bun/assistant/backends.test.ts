@@ -1,5 +1,41 @@
-import { describe, expect, test } from "bun:test"
-import { claudeBackend, codexBackend } from "./backends"
+import { afterEach, describe, expect, test } from "bun:test"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { join } from "node:path"
+import { tmpdir } from "node:os"
+import { assistantCliEnv, claudeBackend, codexBackend, resolveCliCommand } from "./backends"
+
+const originalPath = process.env.PATH
+const originalHome = process.env.HOME
+
+afterEach(() => {
+  process.env.PATH = originalPath
+  process.env.HOME = originalHome
+})
+
+function writeExecutable(path: string): void {
+  writeFileSync(path, "#!/bin/sh\nexit 0\n", { mode: 0o755 })
+}
+
+describe("resolveCliCommand", () => {
+  test("should find user-installed CLIs when launched with the macOS GUI PATH", () => {
+    const home = join(tmpdir(), `quincy-cli-${crypto.randomUUID()}`)
+    try {
+      mkdirSync(join(home, ".local/bin"), { recursive: true })
+      mkdirSync(join(home, ".asdf/shims"), { recursive: true })
+      writeExecutable(join(home, ".local/bin/claude"))
+      writeExecutable(join(home, ".asdf/shims/codex"))
+      process.env.HOME = home
+      process.env.PATH = "/usr/bin:/bin:/usr/sbin:/sbin"
+
+      expect(resolveCliCommand("claude")).toBe(join(home, ".local/bin/claude"))
+      expect(resolveCliCommand("codex")).toBe(join(home, ".asdf/shims/codex"))
+      expect(assistantCliEnv().PATH?.split(":")).toContain(join(home, ".asdf/shims"))
+      expect(assistantCliEnv().PATH?.split(":")).toContain("/opt/homebrew/opt/asdf/libexec/bin")
+    } finally {
+      rmSync(home, { recursive: true, force: true })
+    }
+  })
+})
 
 describe("claudeBackend.parseLine", () => {
   test("should extract text deltas from stream events", () => {

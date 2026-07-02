@@ -1,5 +1,5 @@
 import type { AssistantBackend, AssistantDocSnapshot, AssistantHistoryTurn } from "../../shared/types"
-import { backends } from "./backends"
+import { assistantCliEnv, backends } from "./backends"
 import { mkdir, rm } from "node:fs/promises"
 
 const SYSTEM_PREAMBLE = [
@@ -95,7 +95,7 @@ export async function runTurn(req: RunTurnRequest, deps: RunTurnDeps): Promise<v
       stdin: "pipe",
       stdout: "pipe",
       stderr: "pipe",
-      env: { ...process.env },
+      env: assistantCliEnv(),
     })
   } catch (err) {
     deps.emit.error(req.turnId, `Failed to launch ${plan.cmd}: ${String(err)}`)
