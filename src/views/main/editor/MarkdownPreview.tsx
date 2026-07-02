@@ -8,6 +8,7 @@ interface MarkdownPreviewProps {
 }
 
 const URL_SCHEME = /^[A-Za-z][A-Za-z\d+.-]*:/
+const INLINE_IMAGE_DATA_URL = /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp);base64,[a-z\d+/]+=*$/i
 
 function isRelativeUrl(url: string): boolean {
   return url.length > 0 && !url.startsWith("#") && !url.startsWith("/") && !url.startsWith("//") && !URL_SCHEME.test(url)
@@ -17,12 +18,21 @@ function isLocalImageUrl(url: string): boolean {
   return isRelativeUrl(url) || url.startsWith("file://")
 }
 
+function isInlineImageDataUrl(url: string): boolean {
+  return INLINE_IMAGE_DATA_URL.test(url)
+}
+
+function initialMarkdownImageSrc(src: string | undefined, activeFilePath: string | null | undefined): string | undefined {
+  if (activeFilePath && src && isLocalImageUrl(src)) return undefined
+  return src
+}
+
 export function shouldLoadMarkdownImage(url: string | undefined, activeFilePath: string | null | undefined): boolean {
   return Boolean(activeFilePath && url && isLocalImageUrl(url))
 }
 
 function useMarkdownImageSrc(src: string | undefined, activeFilePath: string | null | undefined): string | undefined {
-  const [resolvedSrc, setResolvedSrc] = useState<string | undefined>(undefined)
+  const [resolvedSrc, setResolvedSrc] = useState<string | undefined>(() => initialMarkdownImageSrc(src, activeFilePath))
 
   useEffect(() => {
     if (!activeFilePath || !src || !isLocalImageUrl(src)) {
@@ -50,7 +60,8 @@ type MarkdownImageProps = ComponentPropsWithoutRef<"img"> & {
 
 function MarkdownImage({ activeFilePath, src, alt, ...props }: MarkdownImageProps) {
   const resolvedSrc = useMarkdownImageSrc(src, activeFilePath)
-  return <img {...props} src={resolvedSrc} alt={alt ?? ""} />
+  const imageSrc = resolvedSrc && resolvedSrc.length > 0 ? resolvedSrc : undefined
+  return <img {...props} src={imageSrc} alt={alt ?? ""} />
 }
 
 export const MarkdownPreview = memo(forwardRef<HTMLDivElement, MarkdownPreviewProps>(
@@ -65,6 +76,7 @@ export const MarkdownPreview = memo(forwardRef<HTMLDivElement, MarkdownPreviewPr
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             urlTransform={(url, key, node) => {
+              if (key === "src" && node.tagName === "img" && isInlineImageDataUrl(url)) return url
               if (key === "src" && node.tagName === "img" && shouldLoadMarkdownImage(url, activeFilePath)) return url
               return defaultUrlTransform(url)
             }}

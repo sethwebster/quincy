@@ -36,6 +36,25 @@ describe("shouldLoadMarkdownImage", () => {
     expect(markup).not.toContain("file://")
   })
 
+  test("renders inline image data URLs from embedded attachments", () => {
+    const dataUrl = "data:image/png;base64,iVBORw0KGgo="
+    const markup = renderToStaticMarkup(createElement(MarkdownPreview, {
+      content: `![Inline](${dataUrl})`,
+      activeFilePath: "/Users/seth/quincy/README.md",
+    }))
+
+    expect(markup).toContain(`src="${dataUrl}"`)
+  })
+
+  test("does not render non-image data URLs from markdown content", () => {
+    const markup = renderToStaticMarkup(createElement(MarkdownPreview, {
+      content: "![Inline](data:text/html;base64,PGgxPkJvb208L2gxPg==)",
+      activeFilePath: "/Users/seth/quincy/README.md",
+    }))
+
+    expect(markup).not.toContain("src=")
+  })
+
   test("does not render direct non-image file urls from markdown content", () => {
     const markup = renderToStaticMarkup(createElement(MarkdownPreview, {
       content: "![Secret](file:///etc/passwd)",
