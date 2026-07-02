@@ -1,9 +1,10 @@
 import ReactMarkdown from "react-markdown"
+import rehypeRaw from "rehype-raw"
 import remarkGfm from "remark-gfm"
 import { memo, forwardRef } from "react"
 
 interface MarkdownPreviewProps {
-  content: string
+  readonly content: string
 }
 
 export const MarkdownPreview = memo(forwardRef<HTMLDivElement, MarkdownPreviewProps>(
@@ -15,7 +16,7 @@ export const MarkdownPreview = memo(forwardRef<HTMLDivElement, MarkdownPreviewPr
         style={{ color: "var(--color-text-primary)" }}
       >
         {content.trim() ? (
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>{content}</ReactMarkdown>
         ) : (
           <p style={{ color: "var(--color-text-placeholder)" }}>Preview will appear here…</p>
         )}
