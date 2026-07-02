@@ -22,16 +22,17 @@ export function ModeToggle({ mode, onChange }: ModeToggleProps) {
   return (
     <div
       className="no-drag relative flex items-center rounded-lg p-0.5"
-      style={{ background: "rgba(0,0,0,0.3)", border: "1px solid var(--color-glass-border)" }}
+      style={{ background: "var(--color-glass-bg)", border: "1px solid var(--color-glass-border)" }}
     >
       {MODES.map((m) => (
         <button
           key={m.id}
+          type="button"
           title={m.title}
           onClick={() => onChange(m.id)}
           className="relative z-10 rounded-md px-3 py-1 text-xs font-medium transition-colors duration-150"
           style={{
-            color: mode === m.id ? "var(--color-text-primary)" : "var(--color-text-muted)",
+            color: mode === m.id ? "white" : "var(--color-text-muted)",
           }}
         >
           {mode === m.id && (
