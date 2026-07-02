@@ -155,7 +155,9 @@ function EditorArea() {
               transition={{ duration: 0.15 }}
             >
               <RichTextEditor
+                key={activeFilePath ?? activeDocumentId ?? "rich-empty"}
                 content={content}
+                activeFilePath={activeFilePath}
                 onChange={setContent}
                 selection={activeSelection}
                 onSelectionChange={(selection) => setSelection("rich", selection)}

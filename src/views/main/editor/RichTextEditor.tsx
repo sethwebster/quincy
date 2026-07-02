@@ -12,6 +12,7 @@ import { useEffect, useRef } from "react"
 import type { EditorSelectionRange } from "../../../shared/types"
 import { useEditor as useEditorContext } from "./EditorContext"
 import { fileItemsFromDataTransfer, type MarkdownAttachmentResolver } from "./markdownAttachmentHelpers"
+import { richMarkdownImageBridge, useResolvedRichMarkdownImages } from "./richMarkdownImages"
 import { rpc } from "../rpc/client"
 
 export interface RichSearchIndex {
@@ -26,6 +27,7 @@ interface RichTextEditorProps {
   onSelectionChange?: (selection: EditorSelectionRange) => void
   onSearchIndexChange?: (index: RichSearchIndex) => void
   onResolveAttachments?: MarkdownAttachmentResolver
+  activeFilePath?: string | null
   placeholder?: string
 }
 
@@ -128,6 +130,7 @@ export function RichTextEditor({
   onSelectionChange,
   onSearchIndexChange,
   onResolveAttachments,
+  activeFilePath,
   placeholder = "Start writing…",
 }: RichTextEditorProps) {
   const onChangeRef = useRef(onChange)
@@ -137,6 +140,7 @@ export function RichTextEditor({
   const onSearchIndexChangeRef = useRef(onSearchIndexChange)
   onSearchIndexChangeRef.current = onSearchIndexChange
   const editorRef = useRef<Editor | null>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   // Track whether the change is internal (user typing) vs external (prop update)
   const internalUpdateRef = useRef(false)
@@ -148,6 +152,7 @@ export function RichTextEditor({
       TableRow,
       TableHeader,
       TableCell,
+      richMarkdownImageBridge(activeFilePath),
       Markdown,
       Placeholder.configure({ placeholder }),
     ],
@@ -178,6 +183,7 @@ export function RichTextEditor({
     },
   })
 
+  useResolvedRichMarkdownImages(contentRef, activeFilePath, content)
   useTipTapSelection(editor, selection)
 
   // Register an AI-edit handle. `insertContentAt` over the whole doc (patched by
@@ -219,7 +225,7 @@ export function RichTextEditor({
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      <div className="no-drag flex-1 overflow-y-auto px-8 py-6">
+      <div ref={contentRef} className="no-drag flex-1 overflow-y-auto px-8 py-6">
         <EditorContent editor={editor} className="h-full" />
       </div>
     </div>
