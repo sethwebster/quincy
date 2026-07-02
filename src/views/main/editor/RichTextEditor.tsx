@@ -13,6 +13,7 @@ import type { EditorSelectionRange } from "../../../shared/types"
 import { useEditor as useEditorContext } from "./EditorContext"
 import { fileItemsFromDataTransfer, type MarkdownAttachmentResolver } from "./markdownAttachmentHelpers"
 import { richMarkdownImageBridge, useResolvedRichMarkdownImages } from "./richMarkdownImages"
+import { richMarkdownRawHtmlBridge } from "./richModeCompat"
 import { rpc } from "../rpc/client"
 
 export interface RichSearchIndex {
@@ -153,7 +154,8 @@ export function RichTextEditor({
       TableHeader,
       TableCell,
       richMarkdownImageBridge(activeFilePath),
-      Markdown,
+      ...richMarkdownRawHtmlBridge,
+      Markdown.configure({ html: true }),
       Placeholder.configure({ placeholder }),
     ],
     content,
