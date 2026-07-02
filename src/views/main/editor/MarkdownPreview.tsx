@@ -9,7 +9,7 @@ interface MarkdownPreviewProps {
 }
 
 const URL_SCHEME = /^[A-Za-z][A-Za-z\d+.-]*:/
-const INLINE_IMAGE_DATA_URL = /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp);base64,[a-z\d+/]+=*$/i
+const INLINE_IMAGE_DATA_URL = /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|svg\+xml);base64,[a-z\d+/]+=*$/i
 
 function isRelativeUrl(url: string): boolean {
   return url.length > 0 && !url.startsWith("#") && !url.startsWith("/") && !url.startsWith("//") && !URL_SCHEME.test(url)

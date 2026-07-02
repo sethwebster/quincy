@@ -46,6 +46,16 @@ describe("shouldLoadMarkdownImage", () => {
     expect(markup).toContain(`src="${dataUrl}"`)
   })
 
+  test("renders inline SVG image data URLs from embedded attachments", () => {
+    const dataUrl = "data:image/svg+xml;base64,PHN2Zy8+"
+    const markup = renderToStaticMarkup(createElement(MarkdownPreview, {
+      content: `![Inline](${dataUrl})`,
+      activeFilePath: "/Users/seth/quincy/README.md",
+    }))
+
+    expect(markup).toContain(`src="${dataUrl}"`)
+  })
+
   test("does not render non-image data URLs from markdown content", () => {
     const markup = renderToStaticMarkup(createElement(MarkdownPreview, {
       content: "![Inline](data:text/html;base64,PGgxPkJvb208L2gxPg==)",
