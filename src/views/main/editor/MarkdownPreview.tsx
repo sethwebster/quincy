@@ -3,6 +3,7 @@ import rehypeRaw from "rehype-raw"
 import remarkGfm from "remark-gfm"
 import { memo, forwardRef, useEffect, useState, type ComponentPropsWithoutRef } from "react"
 import { isInlineImageDataUrl, shouldBridgeMarkdownImage } from "./markdownImageUrls"
+import { languageFromClassName, renderHighlightedCode } from "./syntaxHighlighting"
 
 interface MarkdownPreviewProps {
   readonly content: string
@@ -53,6 +54,20 @@ function MarkdownImage({ activeFilePath, src, alt, ...props }: MarkdownImageProp
   return <img {...props} src={imageSrc} alt={alt ?? ""} />
 }
 
+type MarkdownCodeProps = ComponentPropsWithoutRef<"code">
+
+function MarkdownCode({ className, children, ...props }: MarkdownCodeProps) {
+  const language = languageFromClassName(className)
+  const code = typeof children === "string" ? children : null
+  const highlighted = language && code ? renderHighlightedCode(code, language) : null
+
+  return (
+    <code {...props} className={className}>
+      {highlighted ?? children}
+    </code>
+  )
+}
+
 export const MarkdownPreview = memo(forwardRef<HTMLDivElement, MarkdownPreviewProps>(
   function MarkdownPreview({ content, activeFilePath }, ref) {
     return (
@@ -71,6 +86,9 @@ export const MarkdownPreview = memo(forwardRef<HTMLDivElement, MarkdownPreviewPr
               return defaultUrlTransform(url)
             }}
             components={{
+              code({ node: _node, className, children, ...props }) {
+                return <MarkdownCode {...props} className={className}>{children}</MarkdownCode>
+              },
               img({ node: _node, src, alt, ...props }) {
                 return <MarkdownImage {...props} src={src} alt={alt} activeFilePath={activeFilePath} />
               },
