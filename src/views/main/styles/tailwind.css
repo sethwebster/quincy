@@ -245,6 +245,54 @@ html[data-font="mono"] {
   background: none;
   padding: 0;
 }
+.editor-content pre code .hljs-comment,
+.editor-content pre code .hljs-quote {
+  color: var(--color-cm-comment);
+  font-style: italic;
+}
+.editor-content pre code .hljs-keyword,
+.editor-content pre code .hljs-selector-tag,
+.editor-content pre code .hljs-subst {
+  color: var(--color-syntax-keyword);
+}
+.editor-content pre code .hljs-number,
+.editor-content pre code .hljs-literal,
+.editor-content pre code .hljs-variable,
+.editor-content pre code .hljs-template-variable,
+.editor-content pre code .hljs-attribute {
+  color: var(--color-syntax-number);
+}
+.editor-content pre code .hljs-string,
+.editor-content pre code .hljs-doctag,
+.editor-content pre code .hljs-title,
+.editor-content pre code .hljs-section,
+.editor-content pre code .hljs-selector-id {
+  color: var(--color-syntax-string);
+}
+.editor-content pre code .hljs-type,
+.editor-content pre code .hljs-class .hljs-title {
+  color: var(--color-syntax-type);
+}
+.editor-content pre code .hljs-tag,
+.editor-content pre code .hljs-name,
+.editor-content pre code .hljs-selector-class,
+.editor-content pre code .hljs-selector-attr,
+.editor-content pre code .hljs-selector-pseudo {
+  color: var(--color-syntax-tag);
+}
+.editor-content pre code .hljs-built_in,
+.editor-content pre code .hljs-builtin-name,
+.editor-content pre code .hljs-symbol,
+.editor-content pre code .hljs-bullet,
+.editor-content pre code .hljs-link,
+.editor-content pre code .hljs-meta,
+.editor-content pre code .hljs-deletion,
+.editor-content pre code .hljs-addition {
+  color: var(--color-syntax-property);
+}
+.editor-content pre code .hljs-regexp {
+  color: var(--color-syntax-regexp);
+}
 .editor-content a {
   color: var(--color-accent);
   text-decoration: none;
