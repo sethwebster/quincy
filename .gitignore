@@ -30,6 +30,15 @@ convex/_generated/*.ts
 # macOS
 .DS_Store
 
+# design-sync: staged scripts, build output, caches (durable inputs under
+# .design-sync/ — config.json, NOTES.md, entry.tsx, conventions.md, previews/,
+# overrides/ — ARE committed)
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+
 # Local tooling state and generated artifacts (not source)
 .omo/
 .playwright-mcp/

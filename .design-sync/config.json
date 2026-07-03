@@ -1,0 +1,45 @@
+{
+  "shape": "package",
+  "pkg": "quincy",
+  "globalName": "Quincy",
+  "projectId": "c6efb960-40d7-4448-967b-09d8c5bd0743",
+  "srcDir": "src",
+  "tsconfig": "tsconfig.json",
+  "buildCmd": "bun run build:css",
+  "entry": ".design-sync/entry.tsx",
+  "cssEntry": "src/views/main/styles/output.css",
+  "extraFonts": ".design-sync/fonts/fonts.css",
+  "readmeHeader": ".design-sync/conventions.md",
+  "componentSrcMap": {
+    "Button": "src/views/main/components/Button.tsx",
+    "Glass": "src/views/main/components/Glass.tsx",
+    "Spinner": "src/views/main/components/Spinner.tsx",
+    "ModeToggle": "src/views/main/editor/ModeToggle.tsx",
+    "Toolbar": "src/views/main/editor/Toolbar.tsx",
+    "FindReplacePanel": "src/views/main/editor/FindReplacePanel.tsx",
+    "ChatMessage": "src/views/main/assistant/ChatMessage.tsx",
+    "TreeContextMenu": "src/views/main/sidebar/TreeContextMenu.tsx",
+    "MarkdownAttachmentStorageModal": "src/views/main/editor/MarkdownAttachmentStorageModal.tsx",
+    "QuickOpenModal": "src/views/main/quickopen/QuickOpenModal.tsx"
+  },
+  "dtsPropsFor": {
+    "Button": "variant?: \"primary\" | \"ghost\" | \"danger\"; size?: \"sm\" | \"md\"; loading?: boolean; children?: React.ReactNode; disabled?: boolean; className?: string; type?: \"button\" | \"submit\" | \"reset\"; onClick?: React.MouseEventHandler<HTMLButtonElement>; title?: string;",
+    "Glass": "as?: React.ElementType; elevated?: boolean; children?: React.ReactNode; className?: string; style?: React.CSSProperties; onClick?: React.MouseEventHandler<HTMLDivElement>;",
+    "Spinner": "size?: number;",
+    "ModeToggle": "mode: \"rich\" | \"split\" | \"source\"; onChange: (mode: \"rich\" | \"split\" | \"source\") => void;",
+    "Toolbar": "mode: \"rich\" | \"split\" | \"source\"; onAction: (action: \"bold\" | \"italic\" | \"code\" | \"link\" | \"h2\" | \"ul\" | \"ol\" | \"quote\" | \"rule\" | \"table\") => void;",
+    "FindReplacePanel": "query: string; replacement: string; currentIndex: number; matchCount: number; onQueryChange: (query: string) => void; onReplacementChange: (replacement: string) => void; onNext: () => void; onPrevious: () => void; onReplace: () => void; onReplaceAll: () => void; onClose: () => void;",
+    "ChatMessage": "message: { id: string; turnId: string; role: \"user\" | \"assistant\"; content: string; streaming?: boolean; error?: string; toolUses?: Array<{ id: string; label: string }> };",
+    "TreeContextMenu": "menu: { x: number; y: number; node: { name: string; path: string; isFolder: boolean } }; onClose: () => void; onNewFile: (dir: string) => void; onRename: (path: string) => void; onDelete: (path: string) => void;",
+    "MarkdownAttachmentStorageModal": "fileCount: number; defaultMode: \"sidecar\" | \"inline\"; sidecarAvailable: boolean; onCancel: () => void; onChoose: (mode: \"sidecar\" | \"inline\", persist: boolean) => void;",
+    "QuickOpenModal": "query: string; onQueryChange: (q: string) => void; results: Array<{ kind: \"file\"; path: string; name: string } | { kind: \"content\"; path: string; name: string; lineNumber: number; snippet: string }>; selectedIndex: number; onSelect: (result: { kind: \"file\"; path: string; name: string } | { kind: \"content\"; path: string; name: string; lineNumber: number; snippet: string }) => void; onKeyDown: (e: React.KeyboardEvent) => void; onClose: () => void;"
+  },
+  "overrides": {
+    "Glass": { "cardMode": "column", "viewport": "560x260" },
+    "FindReplacePanel": { "cardMode": "single", "viewport": "920x200" },
+    "ChatMessage": { "cardMode": "column", "viewport": "640x760" },
+    "TreeContextMenu": { "cardMode": "single", "viewport": "440x300", "primaryStory": "FileMenu" },
+    "MarkdownAttachmentStorageModal": { "cardMode": "single", "viewport": "920x600", "primaryStory": "Dialog" },
+    "QuickOpenModal": { "cardMode": "single", "viewport": "920x600", "primaryStory": "CommandPalette" }
+  }
+}
