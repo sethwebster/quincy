@@ -1,0 +1,32 @@
+/* Monospace stack for Quincy code/markdown-code rendering.
+   Family names match the app's stack exactly:
+   "JetBrains Mono", "Fira Code", "Cascadia Code", monospace.
+   woff2 from @fontsource (OFL). */
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./JetBrainsMono-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("./JetBrainsMono-Bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Fira Code";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./FiraCode-Regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cascadia Code";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("./CascadiaCode-Regular.woff2") format("woff2");
+}
