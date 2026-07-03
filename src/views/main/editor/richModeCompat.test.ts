@@ -4,6 +4,7 @@ import StarterKit from "@tiptap/starter-kit"
 import { Window } from "happy-dom"
 import { Markdown } from "tiptap-markdown"
 import { detectLossyMarkdown, richMarkdownRawHtmlBridge } from "./richModeCompat"
+import { richMarkdownCodeBlock } from "./syntaxHighlighting"
 
 const browserWindow = new Window()
 Object.assign(globalThis, {
@@ -17,14 +18,27 @@ Object.assign(globalThis, {
   getComputedStyle: browserWindow.getComputedStyle,
 })
 
-function roundTripMarkdown(markdown: string): string {
+function renderRichMarkdown(markdown: string): { readonly markdown: string; readonly html: string; readonly editorHtml: string } {
   const editor = new Editor({
     content: markdown,
-    extensions: [StarterKit, ...richMarkdownRawHtmlBridge, Markdown.configure({ html: true })],
+    extensions: [
+      StarterKit.configure({ codeBlock: false }),
+      richMarkdownCodeBlock,
+      ...richMarkdownRawHtmlBridge,
+      Markdown.configure({ html: true }),
+    ],
   })
-  const output = editor.storage.markdown.getMarkdown()
+  const output = {
+    markdown: editor.storage.markdown.getMarkdown(),
+    html: editor.getHTML(),
+    editorHtml: editor.view.dom.innerHTML,
+  }
   editor.destroy()
   return output
+}
+
+function roundTripMarkdown(markdown: string): string {
+  return renderRichMarkdown(markdown).markdown
 }
 
 describe("detectLossyMarkdown", () => {
@@ -105,5 +119,27 @@ describe("richMarkdownRawHtmlBridge", () => {
   test("should ignore HTML-looking text inside code", () => {
     const md = "`<br />`\n\n```html\n<div align=\"center\">\n</div>\n```"
     expect(roundTripMarkdown(md)).toBe(md)
+  })
+})
+
+describe("richMarkdownCodeBlock", () => {
+  test("should preserve and highlight known fenced code languages", () => {
+    const md = "```javascript\nconst answer = 42\n```"
+    const rendered = renderRichMarkdown(md)
+
+    expect(rendered.markdown).toBe(md)
+    expect(rendered.html).toContain("language-javascript")
+    expect(rendered.editorHtml).toContain("hljs-keyword")
+    expect(rendered.editorHtml).toContain("hljs-number")
+  })
+
+  test("should preserve unknown fenced code language classes without highlighting", () => {
+    const md = "```quincy\nconst answer = 42\n```"
+    const rendered = renderRichMarkdown(md)
+
+    expect(rendered.markdown).toBe(md)
+    expect(rendered.html).toContain("language-quincy")
+    expect(rendered.editorHtml).toContain("language-quincy")
+    expect(rendered.editorHtml).not.toContain("hljs-")
   })
 })

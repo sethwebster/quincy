@@ -14,6 +14,7 @@ import { useEditor as useEditorContext } from "./EditorContext"
 import { fileItemsFromDataTransfer, type MarkdownAttachmentResolver } from "./markdownAttachmentHelpers"
 import { richMarkdownImageBridge, useResolvedRichMarkdownImages } from "./richMarkdownImages"
 import { richMarkdownRawHtmlBridge } from "./richModeCompat"
+import { richMarkdownCodeBlock } from "./syntaxHighlighting"
 import { rpc } from "../rpc/client"
 
 export interface RichSearchIndex {
@@ -148,7 +149,8 @@ export function RichTextEditor({
 
   const editor = useTipTap({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ codeBlock: false }),
+      richMarkdownCodeBlock,
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
