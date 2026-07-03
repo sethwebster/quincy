@@ -11,9 +11,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const base = "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-all duration-150 no-drag select-none cursor-default"
 
     const variants = {
-      primary: "bg-[--color-accent] text-white hover:opacity-90 active:opacity-80",
-      ghost: "text-[--color-text-secondary] hover:text-[--color-text-primary] hover:bg-[--color-glass-hover] active:opacity-70",
-      danger: "text-[--color-danger] hover:bg-[rgba(248,113,113,0.1)] active:opacity-70",
+      primary: "bg-[var(--color-accent)] text-white hover:opacity-90 active:opacity-80",
+      ghost: "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-glass-hover)] active:opacity-70",
+      danger: "text-[var(--color-danger)] hover:bg-[rgba(248,113,113,0.1)] active:opacity-70",
     }
 
     const sizes = {

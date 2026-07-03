@@ -91,7 +91,7 @@ export function AssistantPanel({ onClose, assistant }: { onClose: () => void; as
             <button
               onClick={clear}
               title="Clear conversation"
-              className="no-drag cursor-default rounded-md p-1.5 transition-colors hover:bg-[--color-glass-hover]"
+              className="no-drag cursor-default rounded-md p-1.5 transition-colors hover:bg-[var(--color-glass-hover)]"
               style={{ color: "var(--color-text-muted)" }}
             >
               <Trash2 size={15} />
@@ -100,7 +100,7 @@ export function AssistantPanel({ onClose, assistant }: { onClose: () => void; as
           <button
             onClick={onClose}
             title="Close (Cmd+J)"
-            className="no-drag cursor-default rounded-md p-1.5 transition-colors hover:bg-[--color-glass-hover]"
+            className="no-drag cursor-default rounded-md p-1.5 transition-colors hover:bg-[var(--color-glass-hover)]"
             style={{ color: "var(--color-text-muted)" }}
           >
             <X size={16} />
@@ -126,7 +126,7 @@ export function AssistantPanel({ onClose, assistant }: { onClose: () => void; as
                 key={s}
                 onClick={() => send(s)}
                 disabled={streaming}
-                className="no-drag cursor-default rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-[--color-glass-hover] disabled:opacity-50"
+                className="no-drag cursor-default rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--color-glass-hover)] disabled:opacity-50"
                 style={{ border: "1px solid var(--color-glass-border)", color: "var(--color-text-secondary)" }}
               >
                 {s}
