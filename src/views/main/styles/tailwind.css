@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Don't scan design-sync tooling docs for class names — their conventions.md /
+   NOTES.md mention utility classes (incl. counter-examples) as prose, which
+   Tailwind would otherwise compile into stray, unused rules. */
+@source not "../../../../.design-sync";
+
 @theme {
   /* ── Surfaces ─────────────────────────────────────────────────────────── */
   --color-surface-0: #09090d;

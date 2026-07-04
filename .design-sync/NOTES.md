@@ -104,6 +104,17 @@ fixed overlay, so it fills the box and the card measures real height. Keep this.
   instances (preview vs bundle) don't share context, so MotionConfig can't fix it
   from the preview side.
 
+## Tailwind must NOT scan .design-sync/ (fixed 2026-07-03)
+`.design-sync/` is committed (not gitignored), so Tailwind v4's auto content
+detection scanned `conventions.md` / `NOTES.md` and compiled the utility classes
+they mention as prose — including the **broken counter-example** `bg-[--color-accent]`
+— into `output.css`, shipping a stray invalid rule and causing spurious `styling`
+diffs on every re-sync. Fixed with `@source not "../../../../.design-sync";` in
+`src/views/main/styles/tailwind.css`. Keep that line. If a re-sync unexpectedly
+flags `styling: true` with no real CSS change, check `output.css` for classes that
+only appear in docs — that means the exclusion path drifted (verify the `../` depth
+still reaches repo-root `.design-sync/`).
+
 ## Re-sync risks
 - `entry.tsx` is hand-maintained; if a curated component is renamed/moved in the
   app, update both `entry.tsx` and `componentSrcMap` or the build breaks.
