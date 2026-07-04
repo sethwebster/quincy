@@ -101,6 +101,33 @@ describe("richMarkdownRawHtmlBridge", () => {
     expect(roundTripMarkdown(md)).toBe(md)
   })
 
+  test("should center rich editor blocks inside README-style raw HTML alignment", () => {
+    const md = "<div align=\"center\">\n\n# Quincy\n\n**A markdown editor for macOS.**\n\n</div>\n\nAfter"
+    const rendered = renderRichMarkdown(md)
+    const host = document.createElement("div")
+    host.innerHTML = rendered.editorHtml
+    const heading = host.querySelector("h1")
+    const paragraphs = Array.from(host.querySelectorAll("p"))
+    const centeredParagraph = paragraphs[0]
+    const afterParagraph = paragraphs[paragraphs.length - 1]
+
+    expect(rendered.markdown).toBe(md)
+    expect(heading?.getAttribute("style")).toContain("text-align: center")
+    expect(centeredParagraph?.getAttribute("style")).toContain("text-align: center")
+    expect(afterParagraph?.textContent).toBe("After")
+    expect(afterParagraph?.getAttribute("style")).toBeNull()
+  })
+
+  test("should ignore unsupported raw HTML alignment values in rich editor blocks", () => {
+    const md = "<div align=\"middle\">\n\n# Quincy\n\n</div>"
+    const rendered = renderRichMarkdown(md)
+    const host = document.createElement("div")
+    host.innerHTML = rendered.editorHtml
+
+    expect(rendered.markdown).toBe(md)
+    expect(host.querySelector("h1")?.getAttribute("style")).toBeNull()
+  })
+
   test("should preserve inline br source", () => {
     const md = "Line one<br />line two"
     expect(roundTripMarkdown(md)).toBe(md)

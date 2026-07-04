@@ -7,12 +7,26 @@
  * enters rich mode so we can warn instead of losing content.
  */
 
-import { Node } from "@tiptap/core"
+import { Extension, Node } from "@tiptap/core"
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model"
+import { Plugin, PluginKey } from "@tiptap/pm/state"
+import { Decoration, DecorationSet } from "@tiptap/pm/view"
 
 const RAW_HTML_ATTR = "data-raw-html"
 const RAW_HTML_BLOCK_TAG = "quincy-raw-html-block"
 const RAW_HTML_INLINE_TAG = "quincy-raw-html-inline"
+const RAW_HTML_ALIGNMENT_VALUES = ["left", "center", "right", "justify"] as const
+
+type RawHtmlAlignment = (typeof RAW_HTML_ALIGNMENT_VALUES)[number]
+
+interface RawHtmlScope {
+  readonly tag: string
+  readonly alignment: RawHtmlAlignment | null
+}
+
+function isRawHtmlAlignment(value: string): value is RawHtmlAlignment {
+  return RAW_HTML_ALIGNMENT_VALUES.some((alignment) => alignment === value)
+}
 
 interface MarkdownItToken {
   readonly content: string
@@ -87,6 +101,45 @@ function rawHtmlRenderer(tag: string): MarkdownItRenderRule {
   return (tokens, index) => rawHtmlElement(tag, tokens[index]?.content ?? "")
 }
 
+function rawHtmlAlignment(value: string | undefined): RawHtmlAlignment | null {
+  if (!value) return null
+  const normalized = value.trim().toLowerCase()
+  return isRawHtmlAlignment(normalized) ? normalized : null
+}
+
+function rawHtmlOpeningScope(raw: string): RawHtmlScope | null {
+  const match = /^<\s*([a-z][\w:-]*)\b([\s\S]*?)\s*>$/i.exec(raw.trim())
+  if (!match || /\/\s*>$/.test(raw.trim())) return null
+
+  const attrs = match[2] ?? ""
+  const alignMatch = /\balign\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i.exec(attrs)
+  return {
+    tag: match[1].toLowerCase(),
+    alignment: rawHtmlAlignment(alignMatch?.[1] ?? alignMatch?.[2] ?? alignMatch?.[3]),
+  }
+}
+
+function rawHtmlClosingTag(raw: string): string | null {
+  const match = /^<\s*\/\s*([a-z][\w:-]*)\s*>$/i.exec(raw.trim())
+  return match ? match[1].toLowerCase() : null
+}
+
+function activeRawHtmlAlignment(scopes: readonly RawHtmlScope[]): RawHtmlAlignment | null {
+  for (let index = scopes.length - 1; index >= 0; index -= 1) {
+    const alignment = scopes[index]?.alignment
+    if (alignment) return alignment
+  }
+  return null
+}
+
+function closeRawHtmlScope(scopes: RawHtmlScope[], tag: string): void {
+  for (let index = scopes.length - 1; index >= 0; index -= 1) {
+    if (scopes[index]?.tag !== tag) continue
+    scopes.splice(index)
+    return
+  }
+}
+
 function rawHtmlMarkdownStorage(kind: "block" | "inline"): RawHtmlMarkdownStorage {
   return {
     markdown: {
@@ -150,7 +203,52 @@ const rawHtmlInlineNode = Node.create<{}, RawHtmlMarkdownStorage>({
   },
 })
 
-export const richMarkdownRawHtmlBridge = [rawHtmlBlockNode, rawHtmlInlineNode]
+function rawHtmlAlignmentDecorations(doc: ProseMirrorNode): DecorationSet {
+  const decorations: Decoration[] = []
+  const scopes: RawHtmlScope[] = []
+
+  doc.descendants((node, pos) => {
+    if (node.type.name === "rawHtmlBlock") {
+      const raw = rawHtmlAttribute(node)
+      const closingTag = rawHtmlClosingTag(raw)
+      if (closingTag) closeRawHtmlScope(scopes, closingTag)
+      else {
+        const scope = rawHtmlOpeningScope(raw)
+        if (scope) scopes.push(scope)
+      }
+      return false
+    }
+
+    if (!node.isBlock) return true
+
+    const alignment = activeRawHtmlAlignment(scopes)
+    if (alignment) {
+      decorations.push(Decoration.node(pos, pos + node.nodeSize, { style: `text-align: ${alignment}` }))
+    }
+    return true
+  })
+
+  return DecorationSet.create(doc, decorations)
+}
+
+const rawHtmlAlignmentExtension = Extension.create({
+  name: "rawHtmlAlignment",
+  addProseMirrorPlugins() {
+    const key = new PluginKey("rawHtmlAlignment")
+    return [
+      new Plugin({
+        key,
+        props: {
+          decorations(state) {
+            return rawHtmlAlignmentDecorations(state.doc)
+          },
+        },
+      }),
+    ]
+  },
+})
+
+export const richMarkdownRawHtmlBridge = [rawHtmlBlockNode, rawHtmlInlineNode, rawHtmlAlignmentExtension]
 
 /** Remove fenced code blocks and inline code — their contents are literal and
  *  survive the round-trip, so they must not trigger false positives. */
