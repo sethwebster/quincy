@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useConvexAuth, useMutation, useQuery } from "convex/react"
-import { api } from "../../../../convex/_generated/api"
 import { rpc } from "../rpc/client"
 import { useEditor } from "../editor/EditorContext"
 import type { AssistantBackend, AssistantEdit, AssistantMessage } from "../../../shared/types"
+import { api } from "../convexApi"
 
 interface ChunkEvent { turnId: string; delta: string }
 interface ToolUseEvent { turnId: string; toolUseId: string; label: string }

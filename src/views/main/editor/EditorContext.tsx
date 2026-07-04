@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { useConvexAuth, useMutation } from "convex/react"
-import { api } from "../../../../convex/_generated/api"
 import type { Id } from "../../../../convex/_generated/dataModel"
 import type { EditorMode, EditorSelectionRange, EditorSelections, EditorSession } from "../../../shared/types"
+import { api } from "../convexApi"
 import { rpc } from "../rpc/client"
 import { reportAppError, reportAppMessage } from "../errors"
 import { createMarkdownFileIn } from "../files"
@@ -216,7 +216,7 @@ function useRestoreEditorSession(
     return () => {
       cancelled = true
     }
-  }, [restoreSession, markRestoreDone])
+  }, [restoreSession, markRestoreDone, applyDefaultMode])
 }
 
 function usePersistEditorSession(session: EditorSession, isRestoring: boolean) {
