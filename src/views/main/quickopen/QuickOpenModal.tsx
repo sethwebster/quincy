@@ -133,7 +133,7 @@ export function QuickOpenModal({
         type="button"
         aria-label="Close action panel"
         className="absolute inset-0 cursor-default"
-        style={{ background: "var(--color-backdrop-action-panel)" }}
+        style={{ background: "var(--color-backdrop-panel)" }}
         onClick={onClose}
       />
 

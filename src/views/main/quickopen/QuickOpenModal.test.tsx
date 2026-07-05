@@ -94,7 +94,7 @@ describe("QuickOpenModal", () => {
   test("uses the action panel backdrop token", () => {
     const html = renderModal([selectedItem])
 
-    expect(html).toContain("var(--color-backdrop-action-panel)")
+    expect(html).toContain("var(--color-backdrop-panel)")
     expect(html).not.toContain("var(--color-backdrop-modal)")
   })
 

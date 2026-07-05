@@ -81,7 +81,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     >
       <div
         className="absolute inset-0"
-        style={{ background: "var(--color-backdrop-modal)" }}
+        style={{ background: "var(--color-backdrop-panel)" }}
         onClick={onClose}
       />
       <Glass elevated className="relative flex h-fit w-[460px] flex-col overflow-hidden rounded-xl pb-3">
