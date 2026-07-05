@@ -241,7 +241,6 @@ function TitleBar({ mode, onModeChange }: { mode: EditorMode; onModeChange: (m: 
 function MainApp() {
   const { mode, setMode } = useEditor()
   const { folders } = useWorkspace()
-  const quickOpen = useQuickOpen(folders)
   const settingsModal = useSettingsModal()
   // Hoisted so assistant RPC listeners (incl. the edit-apply ack) stay alive
   // while the panel is hidden.
@@ -251,9 +250,22 @@ function MainApp() {
 
   const toggleSidebar = useCallback(() => setSidebarVisible(v => !v), [])
   const toggleAssistant = useCallback(() => setAssistantVisible(v => !v), [])
+  const showAssistant = useCallback(() => setAssistantVisible(true), [])
+  const openSettings = useCallback(() => {
+    window.dispatchEvent(new CustomEvent("quincy:showSettings"))
+  }, [])
   const openFind = useCallback(() => {
     window.dispatchEvent(new CustomEvent("quincy:find"))
   }, [])
+  const quickOpen = useQuickOpen(folders, {
+    openSettings,
+    openFind,
+    toggleSidebar,
+    toggleAssistant,
+    showAssistant,
+    assistant,
+    extensionItems: [],
+  })
   useHotkey("p", quickOpen.toggle)
   useHotkey("b", toggleSidebar)
   useHotkey("j", toggleAssistant)
@@ -328,11 +340,15 @@ function MainApp() {
       <AnimatePresence>
         {quickOpen.isOpen && (
           <QuickOpenModal
+            modes={quickOpen.modes}
+            activeMode={quickOpen.activeMode}
+            onModeChange={quickOpen.setActiveMode}
             query={quickOpen.query}
             onQueryChange={quickOpen.setQuery}
-            results={quickOpen.results}
+            items={quickOpen.items}
             selectedIndex={quickOpen.selectedIndex}
-            onSelect={(result) => void quickOpen.selectResult(result)}
+            emptyState={quickOpen.emptyState}
+            onSelect={quickOpen.selectItem}
             onKeyDown={quickOpen.handleKeyDown}
             onClose={quickOpen.close}
           />

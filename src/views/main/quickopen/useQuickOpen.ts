@@ -1,172 +1,256 @@
-import { useState, useCallback, useRef, useEffect } from "react"
-import type { ContentSearchResult, DirEntry } from "../../../shared/types"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { rpc } from "../rpc/client"
 import { reportAppError } from "../errors"
 import { useEditor } from "../editor/EditorContext"
+import { useSettings } from "../settings/useSettings"
+import {
+  ACTION_PANEL_MODES,
+  actionPanelEmptyState,
+  createActionItems,
+  createAiItems,
+  createExtensionItems,
+  createFileItems,
+  createSettingsItems,
+  executeActionPanelItem,
+  filterActionPanelItems,
+  moveActionPanelSelection,
+  normalizeActionPanelSelection,
+  type ActionPanelExtensionItem,
+  type ActionPanelItem,
+  type ActionPanelModeId,
+} from "./actionPanelModel"
+import { useActionPanelFileIndex } from "./useActionPanelFileIndex"
+import { findContentMatchRange, useActionPanelContentSearch } from "./useActionPanelContentSearch"
 
-/** Unified Quick Open row: a filename match or a full-text content match. */
-export type QuickOpenResult =
-  | { kind: "file"; path: string; name: string }
-  | { kind: "content"; path: string; name: string; lineNumber: number; snippet: string }
+const ACTION_PANEL_RESULT_LIMIT = 100
 
-const CONTENT_SEARCH_MIN_CHARS = 3
-const CONTENT_SEARCH_DEBOUNCE_MS = 150
-
-/** Debounced full-text search over the workspace while the palette is open. */
-function useContentSearch(isOpen: boolean, query: string, folders: string[]) {
-  const [matches, setMatches] = useState<ContentSearchResult[]>([])
-  const requestRef = useRef(0)
-
-  useEffect(() => {
-    if (!isOpen || query.trim().length < CONTENT_SEARCH_MIN_CHARS || folders.length === 0) {
-      setMatches([])
-      return
-    }
-    const request = requestRef.current + 1
-    requestRef.current = request
-    const timer = setTimeout(() => {
-      rpc.request
-        .searchContent({ roots: folders, query: query.trim() })
-        .then((found) => {
-          if (requestRef.current === request) setMatches(found)
-        })
-        .catch((error) => reportAppError("Content search failed", error))
-    }, CONTENT_SEARCH_DEBOUNCE_MS)
-    return () => clearTimeout(timer)
-  }, [isOpen, query, folders])
-
-  return matches
+interface UseQuickOpenOptions {
+  openSettings: () => void
+  openFind: () => void
+  toggleSidebar: () => void
+  toggleAssistant: () => void
+  showAssistant: () => void
+  assistant: {
+    hasDoc: boolean
+    streaming: boolean
+    send: (question: string) => void
+  }
+  extensionItems?: readonly ActionPanelExtensionItem[]
 }
 
-/** Char offset of the first hit of `query` on `lineNumber` (1-based) in `content`. */
-function offsetOfMatch(content: string, lineNumber: number, query: string): { from: number; to: number } | null {
-  const lines = content.split("\n")
-  const line = lines[lineNumber - 1]
-  if (line === undefined) return null
-  let offset = 0
-  for (let i = 0; i < lineNumber - 1; i += 1) offset += (lines[i] ?? "").length + 1
-  const index = line.toLowerCase().indexOf(query.toLowerCase())
-  const from = offset + Math.max(0, index)
-  return { from, to: index === -1 ? from : from + query.length }
+function emitAppEvent(name: string): void {
+  window.dispatchEvent(new CustomEvent(name))
 }
 
-export function useQuickOpen(folders: string[]) {
+export function useQuickOpen(folders: string[], options: UseQuickOpenOptions) {
   const [isOpen, setIsOpen] = useState(false)
-  const [query, setQuery] = useState("")
-  const [allFiles, setAllFiles] = useState<DirEntry[]>([])
+  const [activeMode, setActiveModeState] = useState<ActionPanelModeId>("files")
+  const [query, setQueryState] = useState("")
   const [selectedIndex, setSelectedIndex] = useState(0)
-  const { mode, openFile, setSelection } = useEditor()
-  const loadedRef = useRef(false)
+  const {
+    mode,
+    activeDocumentId,
+    activeFilePath,
+    openFile,
+    closeFile,
+    setSelection,
+  } = useEditor()
+  const settings = useSettings(isOpen)
+  const {
+    files,
+    invalidate: invalidateFileIndex,
+    reset: resetFileIndex,
+  } = useActionPanelFileIndex(isOpen, folders)
 
   const open = useCallback(() => {
     setIsOpen(true)
-    setQuery("")
+    setActiveModeState("files")
+    setQueryState("")
     setSelectedIndex(0)
-    loadedRef.current = false
-  }, [])
+    invalidateFileIndex()
+  }, [invalidateFileIndex])
 
   const close = useCallback(() => {
     setIsOpen(false)
-    setQuery("")
-    setAllFiles([])
-    loadedRef.current = false
-  }, [])
+    setQueryState("")
+    resetFileIndex()
+  }, [resetFileIndex])
 
   const toggle = useCallback(() => {
     setIsOpen((prev) => {
       if (prev) {
-        setQuery("")
-        setAllFiles([])
-        loadedRef.current = false
+        setQueryState("")
+        resetFileIndex()
         return false
       }
-      loadedRef.current = false
-      setQuery("")
+      invalidateFileIndex()
+      setActiveModeState("files")
+      setQueryState("")
       setSelectedIndex(0)
       return true
     })
+  }, [invalidateFileIndex, resetFileIndex])
+
+  const setActiveMode = useCallback((nextMode: ActionPanelModeId) => {
+    setActiveModeState(nextMode)
+    setSelectedIndex(0)
   }, [])
 
-  // Fetch file list when opened
-  useEffect(() => {
-    if (!isOpen || loadedRef.current || folders.length === 0) return
-    loadedRef.current = true
-    rpc.request
-      .searchFiles({ roots: folders })
-      .then(setAllFiles)
-      .catch((error) => reportAppError("Couldn't index workspace files", error))
-  }, [isOpen, folders])
+  const setQuery = useCallback((nextQuery: string) => {
+    setQueryState(nextQuery)
+    setSelectedIndex(0)
+  }, [])
 
-  const contentMatches = useContentSearch(isOpen, query, folders)
+  const cycleMode = useCallback((delta: number) => {
+    setActiveModeState((currentMode) => {
+      const currentIndex = ACTION_PANEL_MODES.findIndex((panelMode) => panelMode.id === currentMode)
+      const nextIndex = (currentIndex + delta + ACTION_PANEL_MODES.length) % ACTION_PANEL_MODES.length
+      setSelectedIndex(0)
+      return ACTION_PANEL_MODES[nextIndex]?.id ?? "files"
+    })
+  }, [])
 
-  const fileResults: QuickOpenResult[] = (
-    query.length === 0
-      ? allFiles
-      : allFiles.filter((f) => {
-          const q = query.toLowerCase()
-          return f.name.toLowerCase().includes(q) || f.path.toLowerCase().includes(q)
-        })
-  ).map((f) => ({ kind: "file" as const, path: f.path, name: f.name }))
+  const contentMatches = useActionPanelContentSearch(isOpen && activeMode === "files", query, folders)
 
-  const results: QuickOpenResult[] = [
-    ...fileResults,
-    ...contentMatches.map((m) => ({ kind: "content" as const, ...m })),
-  ]
-
-  const selectResult = useCallback(
-    async (result: QuickOpenResult) => {
+  const openFileItem = useCallback(
+    async (item: ActionPanelItem) => {
       try {
-        const file = await rpc.request.readFile({ path: result.path })
-        openFile(result.path, file.content, file.mtimeMs)
-        // Jump to the matched line. Rich mode positions don't map to markdown
-        // offsets, so the jump only applies in source/split.
-        if (result.kind === "content" && mode !== "rich") {
-          const range = offsetOfMatch(file.content, result.lineNumber, query.trim())
+        if (!item.source) return false
+        const file = await rpc.request.readFile({ path: item.source.path })
+        openFile(item.source.path, file.content, file.mtimeMs)
+        if (item.kind === "content" && item.source.lineNumber !== undefined && mode !== "rich") {
+          const range = findContentMatchRange(file.content, item.source.lineNumber, query.trim())
           if (range) setSelection(mode, range)
         }
-        close()
+        return true
       } catch (error) {
-        reportAppError(`Couldn't open ${result.name}`, error)
+        reportAppError(`Couldn't open ${item.title}`, error)
+        return false
       }
     },
-    [openFile, close, mode, query, setSelection],
+    [query, mode, openFile, setSelection],
+  )
+
+  const allItemsByMode = useMemo<Record<ActionPanelModeId, ActionPanelItem[]>>(() => {
+    const hasOpenDocument = activeDocumentId !== null || activeFilePath !== null
+    return {
+      files: createFileItems({ files, contentMatches, openFile: openFileItem }),
+      settings: createSettingsItems({ settings: settings.settings, update: settings.update }),
+      actions: createActionItems({
+        hasOpenFile: hasOpenDocument,
+        newFile: () => emitAppEvent("quincy:newFile"),
+        closeFile,
+        openFind: options.openFind,
+        exportHtml: () => emitAppEvent("quincy:exportHtml"),
+        openSettings: options.openSettings,
+        toggleSidebar: options.toggleSidebar,
+        toggleAssistant: options.toggleAssistant,
+      }),
+      ai: createAiItems({
+        hasDoc: options.assistant.hasDoc,
+        streaming: options.assistant.streaming,
+        send: options.assistant.send,
+        revealAssistant: options.showAssistant,
+      }),
+      extensions: createExtensionItems(options.extensionItems ?? []),
+    }
+  }, [
+    activeDocumentId,
+    activeFilePath,
+    closeFile,
+    contentMatches,
+    files,
+    openFileItem,
+    options.assistant.hasDoc,
+    options.assistant.send,
+    options.assistant.streaming,
+    options.extensionItems,
+    options.openFind,
+    options.openSettings,
+    options.showAssistant,
+    options.toggleAssistant,
+    options.toggleSidebar,
+    settings.settings,
+    settings.update,
+  ])
+
+  const items = useMemo(
+    () => filterActionPanelItems(allItemsByMode[activeMode], query).slice(0, ACTION_PANEL_RESULT_LIMIT),
+    [activeMode, allItemsByMode, query],
+  )
+  const selectedItem = selectedIndex >= 0 ? items[selectedIndex] : undefined
+
+  const selectItem = useCallback(
+    async (item: ActionPanelItem | undefined) => {
+      if (!item) return
+      if (item.mode !== activeMode || !items.some((currentItem) => currentItem.id === item.id)) return
+      const executed = await executeActionPanelItem(item)
+      if (executed) close()
+    },
+    [activeMode, close, items],
   )
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      const numericMode = ACTION_PANEL_MODES.find((panelMode) => e.metaKey && e.key === panelMode.shortcut)
+      if (numericMode) {
+        e.preventDefault()
+        setActiveMode(numericMode.id)
+        return
+      }
+
       if (e.key === "ArrowDown") {
         e.preventDefault()
-        setSelectedIndex((i) => Math.min(i + 1, results.length - 1))
+        setSelectedIndex((i) => moveActionPanelSelection(items, i, 1))
       } else if (e.key === "ArrowUp") {
         e.preventDefault()
-        setSelectedIndex((i) => Math.max(i - 1, 0))
+        setSelectedIndex((i) => moveActionPanelSelection(items, i, -1))
+      } else if (e.key === "ArrowRight" && e.metaKey) {
+        e.preventDefault()
+        cycleMode(1)
+      } else if (e.key === "ArrowLeft" && e.metaKey) {
+        e.preventDefault()
+        cycleMode(-1)
+      } else if (e.key === "Tab") {
+        e.preventDefault()
+        cycleMode(e.shiftKey ? -1 : 1)
+      } else if (e.key === "Home") {
+        e.preventDefault()
+        setSelectedIndex(normalizeActionPanelSelection(items, 0))
+      } else if (e.key === "End") {
+        e.preventDefault()
+        setSelectedIndex(normalizeActionPanelSelection(items, items.length - 1))
       } else if (e.key === "Enter") {
         e.preventDefault()
-        const selected = results[selectedIndex]
-        if (selected) void selectResult(selected)
+        void selectItem(selectedItem)
       } else if (e.key === "Escape") {
         e.preventDefault()
         close()
       }
     },
-    [results, selectedIndex, selectResult, close],
+    [close, cycleMode, items, selectItem, selectedItem, setActiveMode],
   )
 
-  // Reset index when query changes
   useEffect(() => {
-    setSelectedIndex(0)
-  }, [query])
+    setSelectedIndex((current) => normalizeActionPanelSelection(items, current))
+  }, [items])
 
   return {
     isOpen,
+    activeMode,
+    modes: ACTION_PANEL_MODES,
     query,
     setQuery,
-    results,
+    items,
     selectedIndex,
+    selectedItem,
+    emptyState: actionPanelEmptyState(activeMode),
     open,
     close,
     toggle,
-    selectResult,
+    setActiveMode,
+    cycleMode,
+    selectItem,
     handleKeyDown,
   }
 }

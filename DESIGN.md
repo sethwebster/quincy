@@ -33,6 +33,7 @@ Colors are defined in `src/views/main/styles/tailwind.css` and must be reference
 
 - Glass panels use `.glass` or the `Glass` component, with `backdrop-filter` blur and `--color-glass-border`.
 - Floating modals use a full-screen dark backdrop plus an elevated glass panel.
+- Action panels use a floating glass modal with mode buttons, one searchbox, listbox rows, visible shortcuts, and disabled-state copy.
 - Primary actions use `--color-accent` with white text.
 - Secondary actions use transparent or glass-hover backgrounds with `--color-text-secondary`.
 - Disabled actions reduce opacity and must keep layout stable.
