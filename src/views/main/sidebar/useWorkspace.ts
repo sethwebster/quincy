@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react"
-import { appendWorkspaceFolder, normalizeWorkspaceFolders } from "../../../shared/workspaceFolders"
+import { useState, useEffect } from "react"
+import { normalizeWorkspaceFolders } from "../../../shared/workspaceFolders"
 import { rpc } from "../rpc/client"
 import { reportAppError } from "../errors"
 
@@ -16,7 +16,7 @@ export function useWorkspace() {
       .finally(() => setLoading(false))
   }, [])
 
-  // Sync when bun updates folders via the app menu
+  // Sync when bun adds a folder (menu or sidebar both go through bun's dialog)
   useEffect(() => {
     function handler(e: Event) {
       setFolders(normalizeWorkspaceFolders((e as CustomEvent<string[]>).detail))
@@ -25,13 +25,9 @@ export function useWorkspace() {
     return () => window.removeEventListener("quincy:workspaceFoldersChanged", handler)
   }, [])
 
-  const addFolder = useCallback(async () => {
-    const path = await rpc.request.showOpenFolderDialog({})
-    if (!path) return
-    const next = appendWorkspaceFolder(folders, path)
-    setFolders(next)
-    await rpc.request.setPreferences({ workspaceFolders: next })
-  }, [folders])
+  // Fire-and-forget: bun shows the modal dialog, persists the folder, and
+  // pushes workspaceFoldersChanged back, so slow browsing can't time out.
+  const addFolder = () => rpc.send.addFolderDialog({})
 
   return { folders, loading, addFolder }
 }

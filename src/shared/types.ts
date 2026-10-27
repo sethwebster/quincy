@@ -153,8 +153,6 @@ export type AppRPC = {
         params: { path: string; content: string; expectedMtimeMs?: number }
         response: { mtimeMs: number }
       }
-      showOpenDialog: { params: Record<string, never>; response: string | null }
-      showOpenFolderDialog: { params: Record<string, never>; response: string | null }
       listDirectory: { params: { path: string }; response: DirEntry[] }
       searchFiles: { params: { roots: string[] }; response: DirEntry[] }
       searchContent: { params: { roots: string[]; query: string }; response: ContentSearchResult[] }
@@ -167,6 +165,8 @@ export type AppRPC = {
     messages: {
       log: { msg: string; level: "info" | "warn" | "error" }
       rendererReady: Record<string, never>
+      openFileDialog: Record<string, never>
+      addFolderDialog: Record<string, never>
       syncAssistantDoc: AssistantDocSnapshot
       assistantAsk: {
         turnId: string

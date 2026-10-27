@@ -139,6 +139,9 @@ export function useQuickOpen(folders: string[], options: UseQuickOpenOptions) {
       actions: createActionItems({
         hasOpenFile: hasOpenDocument,
         newFile: () => emitAppEvent("quincy:newFile"),
+        // Fire-and-forget: bun shows the modal dialog and pushes openFile back,
+        // so browsing longer than the RPC request timeout can't fail the open.
+        openFileDialog: () => rpc.send.openFileDialog({}),
         closeFile,
         openFind: options.openFind,
         exportHtml: () => emitAppEvent("quincy:exportHtml"),

@@ -67,6 +67,9 @@ describe("actionPanelModel", () => {
       newFile: () => {
         events.push("new")
       },
+      openFileDialog: () => {
+        events.push("open")
+      },
       closeFile: () => {
         events.push("close")
       },
@@ -87,12 +90,15 @@ describe("actionPanelModel", () => {
       },
     })
 
+    const openFile = items.find((item) => item.id === "action:open-file")
     const closeFile = items.find((item) => item.id === "action:close-file")
     const settings = items.find((item) => item.id === "action:settings")
+    expect(openFile?.disabledReason).toBeUndefined()
     expect(closeFile?.disabledReason).toBe("Open a file before closing it")
+    expect(await executeActionPanelItem(openFile!)).toBe(true)
     expect(await executeActionPanelItem(closeFile!)).toBe(false)
     expect(await executeActionPanelItem(settings!)).toBe(true)
-    expect(events).toEqual(["settings"])
+    expect(events).toEqual(["open", "settings"])
   })
 
   test("builds AI leverager rows with document and streaming guards", async () => {
@@ -134,6 +140,7 @@ describe("actionPanelModel", () => {
     const items = createActionItems({
       hasOpenFile: false,
       newFile: () => undefined,
+      openFileDialog: () => undefined,
       closeFile: () => undefined,
       openFind: () => undefined,
       exportHtml: () => undefined,
