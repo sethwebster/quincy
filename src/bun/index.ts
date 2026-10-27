@@ -81,18 +81,30 @@ function flushPendingMarkdownFileOpens(): void {
   }
 }
 
-async function showMarkdownOpenDialog(): Promise<string | null> {
+async function openMarkdownFileFromDialog(): Promise<void> {
   const paths = await Utils.openFileDialog({
-    allowedFileTypes: "md",
+    allowedFileTypes: "md,markdown",
     canChooseFiles: true,
     canChooseDirectory: false,
     allowsMultipleSelection: false,
   })
+  const path = normalizeMarkdownFilePath(paths[0] ?? "")
+  if (path) openMarkdownFile(path)
+}
+
+async function addWorkspaceFolderFromDialog(): Promise<void> {
+  const paths = await Utils.openFileDialog({
+    canChooseDirectory: true,
+    allowsMultipleSelection: false,
+  })
   const first = paths[0]?.trim()
-  if (!first) return null
-  const normalized = normalizeMarkdownFilePath(first)
-  if (normalized) fileAccess.allowFile(normalized)
-  return normalized
+  if (!first) return
+
+  fileAccess.approveFolder(first)
+  prefs = { ...prefs, workspaceFolders: appendWorkspaceFolder(prefs.workspaceFolders, first) }
+  savePreferences(prefs)
+  fileAccess.setWorkspaceFolders(prefs.workspaceFolders)
+  rpc.send.workspaceFoldersChanged({ folders: prefs.workspaceFolders })
 }
 
 // ─── Assistant (Ask-a-Question panel) ───────────────────────────────────────
@@ -210,23 +222,9 @@ ApplicationMenu.on("application-menu-clicked", async (e: unknown) => {
   } else if (action === "newFile") {
     rpc.send.newFile({})
   } else if (action === "openFile") {
-    const path = await showMarkdownOpenDialog()
-    if (!path) return
-
-    openMarkdownFile(path)
+    await openMarkdownFileFromDialog()
   } else if (action === "addFolder") {
-    const paths = await Utils.openFileDialog({
-      canChooseDirectory: true,
-      allowsMultipleSelection: false,
-    })
-    const first = paths[0]?.trim()
-    if (!first) return
-
-    fileAccess.approveFolder(first)
-    prefs = { ...prefs, workspaceFolders: appendWorkspaceFolder(prefs.workspaceFolders, first) }
-    savePreferences(prefs)
-    fileAccess.setWorkspaceFolders(prefs.workspaceFolders)
-    rpc.send.workspaceFoldersChanged({ folders: prefs.workspaceFolders })
+    await addWorkspaceFolderFromDialog()
   }
 })
 
@@ -296,17 +294,6 @@ const rpc = BrowserView.defineRPC<AppRPC>({
         writeFileSync(tmp, content, "utf-8")
         renameSync(tmp, path)
         return { mtimeMs: statSync(path).mtimeMs }
-      },
-      showOpenDialog: showMarkdownOpenDialog,
-      showOpenFolderDialog: async () => {
-        const paths = await Utils.openFileDialog({
-          canChooseDirectory: true,
-          allowsMultipleSelection: false,
-        })
-        const first = paths[0]?.trim()
-        if (!first || first.length === 0) return null
-        fileAccess.approveFolder(first)
-        return first
       },
       searchFiles: async ({ roots }) => {
         // Bounded walk: a workspace folder pointed at ~ must not block the
@@ -432,6 +419,8 @@ const rpc = BrowserView.defineRPC<AppRPC>({
         console.log("[quincy] renderer ready — RPC channel up")
         flushPendingMarkdownFileOpens()
       },
+      openFileDialog: () => void openMarkdownFileFromDialog(),
+      addFolderDialog: () => void addWorkspaceFolderFromDialog(),
       syncAssistantDoc: (snapshot) => {
         assistantSnapshot = snapshot
         bridge.setSnapshot(snapshot)

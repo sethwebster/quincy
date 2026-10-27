@@ -25,6 +25,17 @@ export function createActionItems(options: CreateActionItemsOptions): ActionPane
       perform: options.newFile,
     },
     {
+      id: "action:open-file",
+      mode: "actions",
+      kind: "action",
+      title: "Open file…",
+      description: "Choose a markdown file with the system open dialog",
+      keywords: ["open", "browse", "finder", "markdown"],
+      icon: "action",
+      shortcut: "Cmd O",
+      perform: options.openFileDialog,
+    },
+    {
       id: "action:close-file",
       mode: "actions",
       kind: "action",

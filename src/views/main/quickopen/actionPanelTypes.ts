@@ -62,6 +62,7 @@ export interface CreateSettingsItemsOptions {
 export interface CreateActionItemsOptions {
   hasOpenFile: boolean
   newFile: () => void | Promise<void>
+  openFileDialog: () => void | Promise<void>
   closeFile: () => void | Promise<void>
   openFind: () => void | Promise<void>
   exportHtml: () => void | Promise<void>
